@@ -13,6 +13,7 @@ from backend.app.api.deps import get_current_user
 router = APIRouter(prefix="/chat", tags=["Conversational AI Assistant"])
 
 @router.post("", response_model=ChatResponse)
+@router.post("/", response_model=ChatResponse)
 async def chat_with_agent(
     req: ChatRequest,
     current_user: Optional[User] = Depends(get_current_user),

@@ -99,12 +99,35 @@ export const App: React.FC = () => {
           />
         )}
 
-        {activeTab === 'tasks' && user && (
-          <CitizenDashboard
-            language={language}
-            user={user}
-            onSelectService={() => setActiveTab('services')}
-          />
+        {activeTab === 'tasks' && (
+          user ? (
+            <CitizenDashboard
+              language={language}
+              user={user}
+              onSelectService={() => setActiveTab('services')}
+            />
+          ) : (
+            <div style={{ maxWidth: '600px', margin: '4rem auto', padding: '2.5rem', textAlign: 'center', background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(15, 52, 96, 0.08)' }}>
+              <div style={{ display: 'inline-flex', padding: '1rem', borderRadius: '50%', background: '#f8fafc', marginBottom: '1rem' }}>
+                <ShieldCheck size={40} color="#0f3460" />
+              </div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f3460', marginBottom: '0.5rem' }}>
+                {language === 'ta' ? 'விண்ணப்பங்களைக் கண்காணிக்க உள்நுழையவும்' : 'Sign In to Access Your Civic Tasks'}
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+                {language === 'ta'
+                  ? 'உங்கள் சான்றிதழ் விண்ணப்ப நிலை, ஆவண சரிபார்ப்பு மற்றும் உடனடி நினைவூட்டல்களைப் பெற உள்நுழையவும்.'
+                  : 'Log in to track certificate workflow progress, upload documents for verification, and download action plans.'}
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={() => setAuthModalOpen(true)}
+                style={{ padding: '0.75rem 2.25rem', fontSize: '1rem', fontWeight: 600 }}
+              >
+                {language === 'ta' ? 'உள்நுழைக / பதிவு செய்க (Login)' : 'Sign In / Register'}
+              </button>
+            </div>
+          )
         )}
 
         {activeTab === 'whatsapp' && (
