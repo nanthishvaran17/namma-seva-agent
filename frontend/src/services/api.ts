@@ -124,6 +124,49 @@ export class ApiClient {
     });
   }
 
+  // Documents
+  static async uploadDocument(file: File, docCode: string, taskId?: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('doc_code', docCode);
+    if (taskId) {
+      formData.append('task_id', taskId);
+    }
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const res = await fetch(`${API_BASE}/documents/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(err.detail || `Upload failed with status ${res.status}`);
+    }
+
+    return res.json();
+  }
+
+  static async getDocuments(taskId?: string) {
+    const url = taskId ? `/documents?task_id=${taskId}` : '/documents';
+    return this.request<any[]>(url);
+  }
+
+  static async verifyDocument(documentId: string, corrections: Record<string, any> = {}) {
+    return this.request<any>(`/documents/${documentId}/verify`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        is_verified: true,
+        user_corrections: corrections
+      })
+    });
+  }
+
   // Reminders
   static async getReminders() {
     return this.request<any[]>('/reminders');
