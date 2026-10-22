@@ -1,0 +1,168 @@
+{
+  "service_id": "post_matric_scholarship",
+  "name_en": "Tamil Nadu Post-Matric Scholarship",
+  "name_ta": "தமிழ்நாடு போஸ்ட்-மெட்ரிக் கல்வி உதவித்தொகை (Post-Matric Scholarship)",
+  "description_en": "State and Centrally sponsored scholarship covering compulsory non-refundable college fees and maintenance allowance for SC, ST, SCC, and eligible BC/MBC students pursuing post-matriculation / college courses.",
+  "description_ta": "கல்லூரி மற்றும் உயர்கல்வி பயிலும் SC, ST, SCC மற்றும் BC/MBC பிரிவு மாணவர்களுக்கான கட்டாய கல்விக் கட்டணம் மற்றும் பராமரிப்புப் படி வழங்கும் அரசு உதவித்தொகை திட்டம்.",
+  "department": "Adi Dravidar & Tribal Welfare and BC/MBC & Minorities Welfare Departments",
+  "category": "scholarships_education",
+  "portal_url": "https://tnadwscholarship.tn.gov.in/",
+  "application_url": "https://tnadwscholarship.tn.gov.in/",
+  "eligibility_rules": [
+    {
+      "rule_id": "tn_resident",
+      "description_en": "Must be a permanent resident of Tamil Nadu",
+      "description_ta": "தமிழ்நாட்டைப் பூர்வீகமாகக் கொண்டவராக இருத்தல் வேண்டும்",
+      "field": "residence",
+      "operator": "eq",
+      "value": "Tamil Nadu"
+    },
+    {
+      "rule_id": "community_sc_st_bc_mbc",
+      "description_en": "Belong to SC, ST, Converted Christian (SCC), or BC/MBC categories",
+      "description_ta": "SC, ST, SCC அல்லது BC/MBC சமூகப் பிரிவைச் சேர்ந்தவராக இருத்தல் வேண்டும்",
+      "field": "community",
+      "operator": "in",
+      "value": ["SC", "ST", "SCC", "BC", "MBC", "DNC"]
+    },
+    {
+      "rule_id": "income_limit",
+      "description_en": "Annual parental income must not exceed ₹2,50,000 for SC/ST/SCC and ₹2,50,000 for BC/MBC",
+      "description_ta": "பெற்றோரின் ஆண்டு வருமானம் ₹2,50,000-க்கு மிகாமல் இருக்க வேண்டும்",
+      "field": "annual_income",
+      "operator": "lte",
+      "value": 250000
+    },
+    {
+      "rule_id": "enrolled_post_matric",
+      "description_en": "Enrolled in a recognized post-matriculation or degree program (Polytechnic, Arts & Science, Engineering, Medicine, etc.)",
+      "description_ta": "அங்கீகரிக்கப்பட்ட கல்லூரி அல்லது தொழிற்கல்வி படிப்பில் சேர்ந்திருக்க வேண்டும்",
+      "field": "course_level",
+      "operator": "in",
+      "value": ["diploma", "undergraduate", "postgraduate", "professional"]
+    }
+  ],
+  "required_documents": [
+    {
+      "doc_code": "community_certificate",
+      "name_en": "Community Certificate",
+      "name_ta": "சாதிச் சான்றிதழ்",
+      "description": "Permanent Community Certificate issued by Revenue Dept",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf"]
+    },
+    {
+      "doc_code": "income_certificate",
+      "name_en": "Income Certificate (Valid for Current Academic Year)",
+      "name_ta": "வருமானச் சான்றிதழ் (நடப்பு ஆண்டிற்குரியது)",
+      "description": "Income Certificate issued within 6 months showing family income under ₹2.5L",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf"]
+    },
+    {
+      "doc_code": "nativity_certificate",
+      "name_en": "Nativity Certificate",
+      "name_ta": "இருப்பிடச் சான்றிதழ்",
+      "description": "Proof of nativity in Tamil Nadu",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf"]
+    },
+    {
+      "doc_code": "college_id_bonafide",
+      "name_en": "College Bonafide Certificate & Fee Receipt",
+      "name_ta": "கல்லூரி போனாஃபைட் சான்றிதழ் மற்றும் கட்டண ரசீது",
+      "description": "Bonafide certificate signed by the College Principal / Dean with admission number",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "bank_passbook",
+      "name_en": "Applicant Bank Passbook (Aadhaar Seeded)",
+      "name_ta": "ஆதார் இணைக்கப்பட்ட மாணவரின் வங்கிக் கணக்குப் புத்தகம்",
+      "description": "Active savings bank account passbook front page with IFSC and applicant's name",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "aadhaar_card",
+      "name_en": "Aadhaar Card",
+      "name_ta": "ஆதார் அட்டை",
+      "description": "Aadhaar Card for DBT (Direct Benefit Transfer) verification",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "previous_marksheet",
+      "name_en": "10th / 12th / Previous Semester Marksheet",
+      "name_ta": "10-ஆம் / 12-ஆம் வகுப்பு அல்லது முந்தைய செமஸ்டர் மதிப்பெண் பட்டியல்",
+      "description": "Previous qualifying examination marksheet",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    }
+  ],
+  "optional_documents": [],
+  "fee": {
+    "amount_inr": 0.0,
+    "is_free": true,
+    "verified_description": "Free of cost. No application fee is levied for government scholarship applications."
+  },
+  "processing_time": {
+    "working_days": 30,
+    "description_en": "Disbursed per academic cycle following college nodal officer verification and district welfare officer sanction",
+    "description_ta": "கல்லூரி மற்றும் மாவட்ட நல அலுவலர் சரிபார்த்தலுக்குப் பின் வங்கி கணக்கில் நேரடியாக வரவு வைக்கப்படும்"
+  },
+  "application_steps": [
+    {
+      "step_number": 1,
+      "title_en": "Obtain Required Revenue Certificates",
+      "title_ta": "முன்நிபந்தனை வருவாய்ச் சான்றிதழ்களைப் பெறுதல்",
+      "instruction_en": "Ensure you have valid Community Certificate, Income Certificate (<= ₹2.5L), and Nativity Certificate ready.",
+      "instruction_ta": "சாதிச் சான்றிதழ், நடப்பு வருமானச் சான்றிதழ் (<= ₹2.5L) மற்றும் இருப்பிடச் சான்றிதழ் தயாராக இருப்பதை உறுதி செய்யவும்."
+    },
+    {
+      "step_number": 2,
+      "title_en": "Aadhaar Bank Seeding",
+      "title_ta": "வங்கி கணக்கில் ஆதார் இணைத்தல் (Aadhaar Seeding)",
+      "instruction_en": "Verify that your bank account is active and seeded with NPCI / Aadhaar for Direct Benefit Transfer (DBT).",
+      "instruction_ta": "உதவித்தொகை உங்கள் வங்கி கணக்கில் நேரடியாக வரவு வைக்கப்பட, ஆதார் NPCI மேப்பிங் செய்யப்பட்டுள்ளதா என வங்கியில் சரிபார்க்கவும்."
+    },
+    {
+      "step_number": 3,
+      "title_en": "Apply through College Scholarship Nodal Officer",
+      "title_ta": "கல்லூரி உதவித்தொகை ஒருங்கிணைப்பாளர் மூலம் விண்ணப்பித்தல்",
+      "instruction_en": "Submit application through your college portal/institution login on the Tamil Nadu ADW / BC-MBC scholarship portal.",
+      "instruction_ta": "கல்லூரி அலுவலகம் மூலம் தமிழ்நாடு அரசு உதவித்தொகை இணையதளத்தில் விவரங்களைப் பதிவு செய்து சமர்ப்பிக்கவும்."
+    },
+    {
+      "step_number": 4,
+      "title_en": "College & District Verification",
+      "title_ta": "கல்லூரி மற்றும் மாவட்ட அலுவலர் ஒப்புதல்",
+      "instruction_en": "College Nodal Officer verifies your marksheet and fees, then forwards it to District Adi Dravidar / BC Welfare Officer for sanction.",
+      "instruction_ta": "கல்லூரி சரிபார்த்த பின் மாவட்ட நல அலுவலருக்கு அனுப்பி ஒப்புதல் பெற்று DBT மூலம் தொகை வரவு வைக்கப்படும்."
+    }
+  ],
+  "dependencies": ["community_certificate", "income_certificate", "nativity_certificate"],
+  "outputs": {
+    "certificate_type": "Scholarship Sanction Order / Direct Bank Credit",
+    "digitally_signed": true,
+    "validity_period": "One academic year (Renewal required annually)"
+  },
+  "official_sources": [
+    {
+      "title": "Adi Dravidar and Tribal Welfare Department Guidelines",
+      "publisher": "Government of Tamil Nadu",
+      "url": "https://tnadwscholarship.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    },
+    {
+      "title": "Backward Classes, Most Backward Classes and Minorities Welfare Department Policy Note",
+      "publisher": "Government of Tamil Nadu",
+      "url": "https://bcmbcw.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    }
+  ],
+  "last_verified": "2026-10-22",
+  "verification_status": "VERIFIED",
+  "version": "1.0.0",
+  "review_notes": "Prerequisites verified: Community, Income, Nativity. Income threshold <= 2.5 Lakhs confirmed."
+}

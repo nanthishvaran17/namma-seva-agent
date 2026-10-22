@@ -1,0 +1,142 @@
+{
+  "service_id": "first_graduate_certificate",
+  "name_en": "First Graduate Certificate",
+  "name_ta": "முதல் தலைமுறை பட்டதாரி சான்றிதழ் (First Graduate Certificate)",
+  "description_en": "Certificate granted to candidates who are the first in their immediate family to pursue higher education, enabling tuition fee waiver in professional degree courses (Engineering, Medical, Agriculture) via single window counseling.",
+  "description_ta": "குடும்பத்தில் முதல் தலைமுறையாக பட்டப்படிப்பு பயிலும் மாணவர்களுக்கு வழங்கப்படும் சான்றிதழ். பொறியியல், மருத்துவம் போன்ற தொழிற்கல்வி படிப்புகளில் கல்விக் கட்டண விலக்கு பெற பயன்படுகிறது.",
+  "department": "Higher Education / Revenue Department",
+  "category": "scholarships_education",
+  "portal_url": "https://www.tnesevai.tn.gov.in/",
+  "application_url": "https://www.tnesevai.tn.gov.in/Citizen/Registration.aspx",
+  "eligibility_rules": [
+    {
+      "rule_id": "tn_resident",
+      "description_en": "Must be a native of Tamil Nadu",
+      "description_ta": "விண்ணப்பதாரர் தமிழ்நாட்டைப் பூர்வீகமாகக் கொண்டவராக இருத்தல் வேண்டும்",
+      "field": "nativity",
+      "operator": "eq",
+      "value": "Tamil Nadu"
+    },
+    {
+      "rule_id": "no_degree_holder_in_family",
+      "description_en": "No one in the immediate family (Parents, Siblings, Grandparents) should have completed a graduation degree",
+      "description_ta": "குடும்பத்தில் உள்ள பெற்றோர் மற்றும் உடன் பிறந்தவர்களில் எவரும் பட்டப்படிப்பு முடித்திருக்கக் கூடாது",
+      "field": "family_graduate_count",
+      "operator": "eq",
+      "value": 0
+    },
+    {
+      "rule_id": "first_time_availment",
+      "description_en": "No elder brother or sister should have already availed the First Graduate concession",
+      "description_ta": "மூத்த சகோதரர் அல்லது சகோதரி இதற்கு முன் இச்சலுகையைப் பெற்றிருக்கக் கூடாது",
+      "field": "sibling_availed",
+      "operator": "eq",
+      "value": false
+    }
+  ],
+  "required_documents": [
+    {
+      "doc_code": "photo",
+      "name_en": "Applicant Photo",
+      "name_ta": "விண்ணப்பதாரரின் புகைப்படம்",
+      "description": "Passport photo under 50KB",
+      "mandatory": true,
+      "acceptable_formats": ["image/jpeg"]
+    },
+    {
+      "doc_code": "address_proof",
+      "name_en": "Smart Ration Card / Family Card",
+      "name_ta": "ஸ்மார்ட் குடும்ப அட்டை (Ration Card)",
+      "description": "Ration Card containing names of all family members",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "family_education_proofs",
+      "name_en": "Educational Transfer Certificates of Parents & Siblings",
+      "name_ta": "பெற்றோர் மற்றும் உடன் பிறந்தோரின் கல்விச் சான்றிதழ்கள் / மாற்றுச் சான்றிதழ்",
+      "description": "TCs showing highest qualification of parents and siblings (or non-graduation declaration)",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "joint_declaration",
+      "name_en": "Joint Declaration by Applicant and Parent",
+      "name_ta": "விண்ணப்பதாரர் மற்றும் பெற்றோர் கையொப்பமிட்ட கூட்டு உறுதிமொழிப் படிவம்",
+      "description": "Official joint declaration prescribed by Tamil Nadu Government declaring no graduate in family",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf"]
+    }
+  ],
+  "optional_documents": [
+    {
+      "doc_code": "nativity_certificate_copy",
+      "name_en": "Nativity Certificate Copy",
+      "name_ta": "இருப்பிடச் சான்றிதழ் நகல்"
+    }
+  ],
+  "fee": {
+    "amount_inr": 60.0,
+    "is_free": false,
+    "verified_description": "₹60 online application fee on e-Sevai portal."
+  },
+  "processing_time": {
+    "working_days": 15,
+    "description_en": "15 working days following VAO and Revenue Inspector family verification",
+    "description_ta": "15 வேலை நாட்கள் (VAO மற்றும் வருவாய் ஆய்வாளர் கள விசாரணைக்குப் பின்)"
+  },
+  "application_steps": [
+    {
+      "step_number": 1,
+      "title_en": "Login to e-Sevai & Choose REV-104",
+      "title_ta": "இ-சேவை தளத்தில் REV-104 தேர்வு",
+      "instruction_en": "Select First Graduate Certificate (REV-104) under Revenue Department services.",
+      "instruction_ta": "வருவாய்த் துறை சேவைகளில் முதல் தலைமுறை பட்டதாரி சான்றிதழ் (REV-104) என்பதைத் தேர்ந்தெடுக்கவும்."
+    },
+    {
+      "step_number": 2,
+      "title_en": "Enter Family Member Details",
+      "title_ta": "குடும்ப உறுப்பினர்களின் கல்வி விவரங்களை உள்ளிடவும்",
+      "instruction_en": "List all members in the ration card along with their educational qualifications.",
+      "instruction_ta": "ரேஷன் கார்டில் உள்ள அனைத்து உறுப்பினர்களின் கல்வித் தகுதியை உள்ளிடவும்."
+    },
+    {
+      "step_number": 3,
+      "title_en": "Upload Joint Declaration & Proofs",
+      "title_ta": "கூட்டு உறுதிமொழி மற்றும் ஆவணங்களைப் பதிவேற்றவும்",
+      "instruction_en": "Download the generated joint declaration form, sign it with parents, and re-upload along with Ration Card and TCs.",
+      "instruction_ta": "கூட்டு உறுதிமொழிப் படிவத்தைப் பதிவிறக்கம் செய்து, பெற்றோருடன் கையெழுத்திட்டு மீண்டும் பதிவேற்றவும்."
+    },
+    {
+      "step_number": 4,
+      "title_en": "Payment and Verification",
+      "title_ta": "கட்டணம் செலுத்துதல் மற்றும் சான்றிதழ் பெறுதல்",
+      "instruction_en": "Pay ₹60 and obtain digital certificate after Tahsildar approval.",
+      "instruction_ta": "₹60 கட்டணம் செலுத்தி, வட்டாட்சியர் ஒப்புதலுக்குப் பின் சான்றிதழைப் பதிவிறக்கவும்."
+    }
+  ],
+  "dependencies": ["nativity_certificate"],
+  "outputs": {
+    "certificate_type": "Digitally Signed First Graduate Certificate",
+    "digitally_signed": true,
+    "validity_period": "Permanent for graduation tenure"
+  },
+  "official_sources": [
+    {
+      "title": "Directorate of Technical Education (DOTE) First Graduate Concession Guidelines",
+      "publisher": "Higher Education Department, Government of Tamil Nadu",
+      "url": "https://www.dote.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    },
+    {
+      "title": "e-Sevai Service Portal (REV-104)",
+      "publisher": "Tamil Nadu e-Governance Agency",
+      "url": "https://www.tnesevai.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    }
+  ],
+  "last_verified": "2026-10-22",
+  "verification_status": "VERIFIED",
+  "version": "1.0.0",
+  "review_notes": "Prerequisite Nativity established. Fee concession applies for single-window counseling seats."
+}

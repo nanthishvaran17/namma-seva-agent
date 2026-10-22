@@ -1,0 +1,142 @@
+Bharat Life-Admin Agent: A to Z
+1. Idhu enna
+
+Oru WhatsApp number. User Tamil-la voice illa text anuppuvanga, agent adhai purinjikittu, paperwork task-a step by step mudichu tharum. Chatbot maari answer mattum sollaadhu, work track panni mudikkum.
+
+2. User journey (example)
+
+Ravi, 2nd year student, scholarship apply panna:
+
+Ravi voice note: “Enakku BC scholarship apply pannanum”
+Agent: speech-to-text, Tamil purinjikum, intent = scholarship application.
+Agent kelvi: “Un family income certificate irukka? College ID irukka?”
+Ravi photo anuppuvaan. Agent OCR panni details edukkum.
+Agent checklist: “Ready: ID, marksheet. Missing: income certificate.”
+Missing certificate-ku: “Inga apply pannu, ivlo fee, ivlo naal aagum” nu guide.
+Agent deadline set pannum: “Last date 15th. 10th-ku remind pannuren.”
+Form details auto-fill panni, Ravi confirm panna piragu submit steps tharum.
+Status check reminders.
+3. Ulla eppadi work aagum (pipeline)
+User (WhatsApp voice/text/photo)
+   ↓
+[1] Input layer: speech-to-text, OCR, language detect
+   ↓
+[2] Understanding: LLM intent + entities extract
+   ↓
+[3] Agent brain (planner): task-ah steps-ah break pannum
+   ↓
+[4] Tools: knowledge base, checklist engine, form filler, reminder, doc store
+   ↓
+[5] Human-in-the-loop: user confirm
+   ↓
+[6] Output: Tamil text/voice reply + next step
+   ↓
+[7] Memory: task state save (Postgres)
+4. Components
+Component	Velai	Tech
+Channel	WhatsApp messages receive/send	WhatsApp Business Cloud API
+Speech-to-text	Tamil/Hindi voice to text	Whisper-type or cloud STT
+Text-to-speech	Voice reply	Cloud TTS (Tamil support check pannu)
+OCR	Certificate/ID photo read	Document AI / Tesseract + LLM
+LLM	Understand, plan, reply	Any frontier LLM API
+Knowledge base	Scheme rules, documents list, deadlines	Postgres + vector DB (RAG)
+Task engine	Task state, steps, status	Postgres + queue
+Reminder service	Deadline alerts	Scheduler (cron/Celery)
+Doc vault	User documents safe-a store	Encrypted object storage
+Admin panel	Knowledge update, logs	Simple web dashboard
+5. Agent design (mukkiyam)
+
+Single prompt-la ellam panna koodadhu. Structure:
+
+Router: User enna venum nu decide pannum (scholarship / certificate / bill / general).
+Task agents: Ovvoru task-ku oru focused agent, own checklist + rules.
+Tools (function calling):
+get_checklist(task)
+extract_document(photo)
+check_missing_docs(user_id)
+set_reminder(date, message)
+get_scheme_info(name)
+State machine: Task status: started → docs collecting → ready → submitted → tracking → done. LLM state-ah decide pannadhu, code decide pannum. Idhu reliable-aa irukka mukkiyam.
+Human-in-the-loop: Submit, payment, personal data share-ku munnadi user confirm. Zoho-vum idhe approach follow panranga.
+6. Knowledge base (unga real moat)
+
+LLM-ku scheme rules theriyadhu, so neenga curate pannanum:
+
+Scholarship name, eligibility, documents, last date, official link
+Certificate types, apply process, fee, time
+Source: official government sites, manual-aa verify pannu
+Ovvoru entry-ku last_verified_date vachchuko, outdated info thaan periya risk
+Start: 10 scholarships + 5 certificates mattum, accurate-aa
+
+RAG use pannu, aana answer-ku source link kudu. Hallucination ippadi control pannalaam.
+
+7. Form filling (realistic)
+Government portals-ku bulk API illa. Full automation first-la try pannadhe.
+V1: Guided mode. Agent data ready pannum, user-ku “inga click pannu, idha paste pannu” nu step tharum, illa pre-filled PDF generate pannum.
+V2: Where official forms PDF, auto-fill PDF.
+V3: Browser automation, aana user consent + portal terms check pannitu.
+8. Security (unga cyber security strength)
+Documents encrypt at rest + in transit.
+Minimum data store pannu, venaanda aadhaar number mathiri sensitive data store pannadhe, illa mask pannu.
+User-ku “En data delete pannu” command.
+Consent: first message-la clear-aa sollu, enna data, yen.
+Access logs, rate limiting, prompt injection protection (uploaded document-la irukkura text-ah instruction-aa edukka koodadhu).
+LLM-ku personal data anuppumbodhu minimize pannu.
+Idhai marketing-la use pannu: “Un documents-ku safe.”
+9. Tamil voice
+Tamil-English mix (Tanglish) handle pannanum, real users ippadi thaan pesuvanga.
+STT accuracy test pannu: 20 real voice samples collect pannu.
+Reply: simple Tamil, short sentences. Voice reply optional.
+Fallback: purila na “Marubadiyum sollunga” nu kelu, guess pannadhe.
+10. Tech stack (final)
+Backend: Python, FastAPI
+DB: Postgres (+ pgvector for RAG)
+Queue/Scheduler: Celery + Redis
+Channel: WhatsApp Cloud API
+LLM: API-based (model swap panna easy-aa abstraction vachchuko)
+Hosting: Start cheap (single VPS/free tier), apparam scale
+Monitoring: Logs + simple dashboard
+11. Build roadmap (week by week)
+Week	Velai
+1	30 users interview, top task select
+2	Knowledge base 10 entries, checklist engine (no AI yet)
+3	WhatsApp connect, text flow + LLM intent
+4	Voice (STT) + OCR + reminders
+5	State machine, human confirm, security basics
+6	20 friends beta, bugs fix
+7-8	300 users college pilot, daily feedback
+9-12	Task add, Agent Studio v0 planning
+12. Test / evaluate
+Task completion rate: evlo per task mudichanga
+Accuracy: Checklist correct-aa? (manual audit weekly)
+Time saved: before/after
+Drop-off point: Entha step-la users poraanga
+50 test conversations-ah fixed set-aa vachchu, ovvoru change-kum re-run pannu
+13. Business model
+Students: free (growth)
+Premium: Document vault, priority reminders, family accounts (₹49-99/month)
+B2B: Colleges, NGOs, CSC centers white-label
+Later: Marketplace revenue share
+14. Growth
+Own college (IEEE chapter)
+10 colleges via IEEE/other chapters
+Referral: “Friend-ku share pannu, vault storage extra”
+NGOs, CSC centers, gram panchayat partnerships
+15. Risks
+Risk	Plan
+Wrong info (outdated scheme)	Source link + last verified date + disclaimer
+WhatsApp policy	Task-specific bot-aa vachchuko. Meta general-purpose AI chatbot-ku restriction vechchirukku nu naan ninaikkuren, current policy official docs-la check pannu
+Data breach	Minimum data, encryption, audit
+Big tech copy	Local knowledge + trust + community
+Cost (LLM, STT)	Cache, small model for routing, usage limits
+16. Team
+
+Neenga alone start pannalaam. Ideal 3 per: backend/AI (neenga), knowledge curator (research), community/growth (IEEE friend).
+
+17. Indha week-ae panna vendiyadhu
+30 students interview. Questions: “Last time enna paperwork-la struggle aanadhu? Evlo time aachu? Enna help vendum?”
+Top 1 task pick.
+10 knowledge entries official source-la irundhu collect.
+WhatsApp Business developer account create pannu.
+
+Next naan edhu detail-aa panni tharanum: Phase 0 interview questions, database schema, illa agent prompts + tool definitions (actual code start)?

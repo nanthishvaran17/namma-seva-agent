@@ -1,0 +1,107 @@
+{
+  "service_id": "nativity_certificate",
+  "name_en": "Nativity Certificate",
+  "name_ta": "இருப்பிட / பிறப்பிடச் சான்றிதழ் (Nativity Certificate)",
+  "description_en": "Official certificate certifying that a citizen is a native of Tamil Nadu, required for state quota college admissions, government exams, and recruitment.",
+  "description_ta": "தமிழ்நாட்டைப் பூர்வீகமாகக் கொண்டவர் என்பதை உறுதிப்படுத்தும் சான்றிதழ். தமிழ்நாடு அரசு இடஒதுக்கீடு மற்றும் கல்லூரி சேர்க்கைக்குத் தேவைப்படுகிறது.",
+  "department": "Revenue and Disaster Management Department",
+  "category": "certificates_revenue",
+  "portal_url": "https://www.tnesevai.tn.gov.in/",
+  "application_url": "https://www.tnesevai.tn.gov.in/Citizen/Registration.aspx",
+  "eligibility_rules": [
+    {
+      "rule_id": "continuous_residence_or_birth",
+      "description_en": "Applicant or parents must have been born in Tamil Nadu or resided continuously for at least 5 years.",
+      "description_ta": "விண்ணப்பதாரரோ பெற்றோரோ தமிழ்நாட்டில் பிறந்தவராக அல்லது குறைந்தது 5 ஆண்டுகள் தொடர்ந்து வசித்தவராக இருத்தல் வேண்டும்.",
+      "field": "years_of_residence",
+      "operator": "gte",
+      "value": 5
+    }
+  ],
+  "required_documents": [
+    {
+      "doc_code": "photo",
+      "name_en": "Applicant Photograph",
+      "name_ta": "விண்ணப்பதாரரின் புகைப்படம்",
+      "description": "Passport photo under 50KB",
+      "mandatory": true,
+      "acceptable_formats": ["image/jpeg"]
+    },
+    {
+      "doc_code": "birth_certificate",
+      "name_en": "Birth Certificate / School Transfer Certificate",
+      "name_ta": "பிறப்புச் சான்றிதழ் / பள்ளி மாற்றுச் சான்றிதழ்",
+      "description": "Birth certificate proving place of birth or School Study Certificate for past 5 consecutive years",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "parent_nativity_proof",
+      "name_en": "Parent's Nativity / Community Certificate / Property Tax Receipt",
+      "name_ta": "பெற்றோரின் இருப்பிடச் சான்று / சொத்து வரி ரசீது",
+      "description": "Parent's school certificates or land/property deed in Tamil Nadu",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "ration_card",
+      "name_en": "Smart Ration Card / Electoral ID",
+      "name_ta": "ஸ்மார்ட் ரேஷன் கார்டு / வாக்காளர் அடையாள அட்டை",
+      "description": "Address proof",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    }
+  ],
+  "optional_documents": [],
+  "fee": {
+    "amount_inr": 60.0,
+    "is_free": false,
+    "verified_description": "₹60 online application fee on e-Sevai."
+  },
+  "processing_time": {
+    "working_days": 15,
+    "description_en": "15 working days as per Citizen Charter",
+    "description_ta": "15 வேலை நாட்கள்"
+  },
+  "application_steps": [
+    {
+      "step_number": 1,
+      "title_en": "e-Sevai Portal Login with CAN",
+      "title_ta": "CAN மூலம் உள்நுழைவு",
+      "instruction_en": "Select REV-103 Nativity Certificate under Revenue Department.",
+      "instruction_ta": "வருவாய்த் துறையின் கீழ் REV-103 இருப்பிடச் சான்றிதழ் என்பதைத் தேர்ந்தெடுக்கவும்."
+    },
+    {
+      "step_number": 2,
+      "title_en": "Provide Continuous Residence Evidence",
+      "title_ta": "தொடர் இருப்பிடச் சான்றுகளை உள்ளிடவும்",
+      "instruction_en": "Enter duration of residence and school education details in Tamil Nadu.",
+      "instruction_ta": "தமிழ்நாட்டில் படித்த ஆண்டுகள் மற்றும் வசித்த கால விவரங்களைப் பதிவு செய்யவும்."
+    },
+    {
+      "step_number": 3,
+      "title_en": "Upload Proofs & Pay ₹60 Fee",
+      "title_ta": "ஆவணப் பதிவேற்றம் மற்றும் கட்டணம் செலுத்துதல்",
+      "instruction_en": "Upload birth/study certificates and pay ₹60.",
+      "instruction_ta": "பிறப்பு/பள்ளிச் சான்றிதழ்களைப் பதிவேற்றி ₹60 கட்டணம் செலுத்தவும்."
+    }
+  ],
+  "dependencies": [],
+  "outputs": {
+    "certificate_type": "Digitally Signed Nativity Certificate",
+    "digitally_signed": true,
+    "validity_period": "Permanent"
+  },
+  "official_sources": [
+    {
+      "title": "TNeGA e-Sevai Service Catalog (REV-103)",
+      "publisher": "Tamil Nadu e-Governance Agency",
+      "url": "https://www.tnesevai.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    }
+  ],
+  "last_verified": "2026-10-22",
+  "verification_status": "VERIFIED",
+  "version": "1.0.0",
+  "review_notes": "Permanent validity verified."
+}

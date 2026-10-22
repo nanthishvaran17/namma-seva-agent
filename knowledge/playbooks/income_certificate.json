@@ -1,0 +1,114 @@
+{
+  "service_id": "income_certificate",
+  "name_en": "Income Certificate",
+  "name_ta": "வருமானச் சான்றிதழ் (Income Certificate)",
+  "description_en": "Annual family income certificate issued by the Revenue Department for obtaining scholarships, fee concessions, and government welfare benefits.",
+  "description_ta": "கல்வி உதவித்தொகை, கட்டணச் சலுகை மற்றும் அரசு நலத்திட்டங்களைப் பெற குடும்பத்தின் ஆண்டு வருமானத்தை உறுதி செய்யும் அதிகாரப்பூர்வ சான்றிதழ்.",
+  "department": "Revenue and Disaster Management Department",
+  "category": "certificates_revenue",
+  "portal_url": "https://www.tnesevai.tn.gov.in/",
+  "application_url": "https://www.tnesevai.tn.gov.in/Citizen/Registration.aspx",
+  "eligibility_rules": [
+    {
+      "rule_id": "tn_resident",
+      "description_en": "Citizen must be a resident of Tamil Nadu",
+      "description_ta": "விண்ணப்பதாரர் தமிழ்நாட்டில் வசிப்பவராக இருத்தல் வேண்டும்",
+      "field": "state",
+      "operator": "eq",
+      "value": "Tamil Nadu"
+    }
+  ],
+  "required_documents": [
+    {
+      "doc_code": "photo",
+      "name_en": "Applicant Photograph",
+      "name_ta": "விண்ணப்பதாரரின் புகைப்படம்",
+      "description": "Recent passport size photo",
+      "mandatory": true,
+      "acceptable_formats": ["image/jpeg", "image/png"]
+    },
+    {
+      "doc_code": "address_proof",
+      "name_en": "Ration Card / Smart Card / Aadhaar",
+      "name_ta": "குடும்ப அட்டை / ஸ்மார்ட் கார்டு / ஆதார்",
+      "description": "Valid family ration card or residence proof",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "income_proof",
+      "name_en": "Salary Slip / Form 16 / IT Returns / Village VAO Income Report",
+      "name_ta": "சம்பளச் சான்றிதழ் / படிவம் 16 / VAO வருமான அறிக்கை",
+      "description": "Salary slip for employed parents or VAO inquiry for agriculture/unorganized workers",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "self_declaration",
+      "name_en": "Self-Declaration of Applicant",
+      "name_ta": "சுய உறுதிமொழிப் படிவம்",
+      "description": "Declaration of annual household income",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf"]
+    }
+  ],
+  "optional_documents": [],
+  "fee": {
+    "amount_inr": 60.0,
+    "is_free": false,
+    "verified_description": "₹60 statutory e-Sevai citizen portal fee."
+  },
+  "processing_time": {
+    "working_days": 15,
+    "description_en": "15 working days as per Citizen Charter",
+    "description_ta": "15 வேலை நாட்கள் (VAO, வருவாய் ஆய்வாளர் மற்றும் வட்டாட்சியர் ஒப்புதல்)"
+  },
+  "application_steps": [
+    {
+      "step_number": 1,
+      "title_en": "Log in via CAN on e-Sevai",
+      "title_ta": "இ-சேவை தளத்தில் உள்நுழைவு",
+      "instruction_en": "Access e-Sevai with CAN credentials.",
+      "instruction_ta": "CAN எண் மூலம் இ-சேவை தளத்தில் உள்நுழையவும்."
+    },
+    {
+      "step_number": 2,
+      "title_en": "Fill Family Income Details",
+      "title_ta": "குடும்ப வருமான விவரங்களைப் பதிவு செய்தல்",
+      "instruction_en": "Enter details of all earning family members and declare total annual income.",
+      "instruction_ta": "குடும்ப உறுப்பினர்களின் தொழில் மற்றும் மொத்த ஆண்டு வருமான விவரங்களைப் பதிவு செய்யவும்."
+    },
+    {
+      "step_number": 3,
+      "title_en": "Upload Proof Documents & Pay ₹60",
+      "title_ta": "ஆவணங்களைப் பதிவேற்றி ₹60 கட்டணம் செலுத்துதல்",
+      "instruction_en": "Attach Ration Card, Salary/VAO proof and complete ₹60 digital payment.",
+      "instruction_ta": "ஆவணங்களை இணைத்து ₹60 கட்டணத்தைச் செலுத்தவும்."
+    },
+    {
+      "step_number": 4,
+      "title_en": "Download Certificate",
+      "title_ta": "சான்றிதழ் பதிவிறக்கம்",
+      "instruction_en": "Track status and download digitally signed certificate (valid for 6 months).",
+      "instruction_ta": "ஒப்புதல் பெற்றவுடன் சான்றிதழைப் பதிவிறக்கம் செய்யவும் (6 மாதங்கள் செல்லுபடியாகும்)."
+    }
+  ],
+  "dependencies": [],
+  "outputs": {
+    "certificate_type": "Digitally Signed Income Certificate",
+    "digitally_signed": true,
+    "validity_period": "6 Months from date of issue"
+  },
+  "official_sources": [
+    {
+      "title": "Tamil Nadu e-Sevai Citizen Portal (REV-102)",
+      "publisher": "Tamil Nadu e-Governance Agency",
+      "url": "https://www.tnesevai.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    }
+  ],
+  "last_verified": "2026-10-22",
+  "verification_status": "VERIFIED",
+  "version": "1.0.0",
+  "review_notes": "6-month validity rule confirmed for TN income certificates."
+}

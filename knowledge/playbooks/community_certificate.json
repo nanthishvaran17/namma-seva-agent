@@ -1,0 +1,143 @@
+{
+  "service_id": "community_certificate",
+  "name_en": "Community Certificate",
+  "name_ta": "சாதிச் சான்றிதழ் (Community Certificate)",
+  "description_en": "Permanent official certification of community/caste (SC, ST, BC, MBC, DNC) issued by the Revenue Administration, Government of Tamil Nadu.",
+  "description_ta": "தமிழ்நாடு வருவாய்த் துறையால் வழங்கப்படும் அதிகாரப்பூர்வ சாதிச் சான்றிதழ் (SC, ST, BC, MBC, DNC). கல்வி மற்றும் வேலைவாய்ப்பில் இடஒதுக்கீடு பெற அவசியமானது.",
+  "department": "Revenue and Disaster Management Department",
+  "category": "certificates_revenue",
+  "portal_url": "https://www.tnesevai.tn.gov.in/",
+  "application_url": "https://www.tnesevai.tn.gov.in/Citizen/Registration.aspx",
+  "eligibility_rules": [
+    {
+      "rule_id": "tn_resident",
+      "description_en": "Citizen must be a resident of Tamil Nadu",
+      "description_ta": "விண்ணப்பதாரர் தமிழ்நாட்டில் வசிப்பவராக இருத்தல் வேண்டும்",
+      "field": "state",
+      "operator": "eq",
+      "value": "Tamil Nadu"
+    },
+    {
+      "rule_id": "recognized_community",
+      "description_en": "Must belong to an officially notified community in Tamil Nadu (BC, MBC, DNC, SC, ST)",
+      "description_ta": "தமிழ்நாடு அரசால் அங்கீகரிக்கப்பட்ட சமூகப் பிரிவைச் சேர்ந்தவராக இருக்க வேண்டும்",
+      "field": "community",
+      "operator": "in",
+      "value": ["BC", "MBC", "DNC", "SC", "ST"]
+    }
+  ],
+  "required_documents": [
+    {
+      "doc_code": "photo",
+      "name_en": "Applicant Passport Size Photograph",
+      "name_ta": "விண்ணப்பதாரரின் பாஸ்போர்ட் அளவு புகைப்படம்",
+      "description": "Recent color photograph (under 50KB)",
+      "mandatory": true,
+      "acceptable_formats": ["image/jpeg", "image/png"]
+    },
+    {
+      "doc_code": "address_proof",
+      "name_en": "Proof of Address (Ration Card / Aadhaar / Voter ID / EB Bill)",
+      "name_ta": "முகவரிச் சான்று (குடும்ப அட்டை / ஆதார் / வாக்காளர் அட்டை / மின் கட்டண ரசீது)",
+      "description": "Smart Ration Card or Aadhaar Card showing current residence",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "community_proof_family",
+      "name_en": "Community Certificate of Father / Mother / Sibling",
+      "name_ta": "தந்தை / தாய் / உடன்பிறந்தோரின் சாதிச் சான்றிதழ்",
+      "description": "Community certificate of parents or siblings or School Transfer Certificate mentioning community",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "applicant_tc",
+      "name_en": "Applicant School/College Transfer Certificate (TC)",
+      "name_ta": "பள்ளி அல்லது கல்லூரி மாற்றுச் சான்றிதழ் (TC)",
+      "description": "School Transfer Certificate showing applicant's name and community",
+      "mandatory": false,
+      "acceptable_formats": ["application/pdf", "image/jpeg"]
+    },
+    {
+      "doc_code": "self_declaration",
+      "name_en": "Self-Declaration of Applicant / Parent",
+      "name_ta": "விண்ணப்பதாரர் / பெற்றோரின் சுய உறுதிமொழிப் படிவம்",
+      "description": "Standard signed self-declaration generated during e-Sevai portal submission",
+      "mandatory": true,
+      "acceptable_formats": ["application/pdf"]
+    }
+  ],
+  "optional_documents": [],
+  "fee": {
+    "amount_inr": 60.0,
+    "is_free": false,
+    "verified_description": "₹60 application charge via Tamil Nadu e-Sevai citizen portal as per official tariff."
+  },
+  "processing_time": {
+    "working_days": 15,
+    "description_en": "15 working days as per Tamil Nadu Citizen Charter (processed by Revenue Inspector & Zonal Deputy Tahsildar)",
+    "description_ta": "தமிழ்நாடு குடிமக்கள் சாசனத்தின்படி 15 வேலை நாட்கள் (வருவாய் ஆய்வாளர் மற்றும் மண்டல துணை வட்டாட்சியர் ஒப்புதல்)"
+  },
+  "application_steps": [
+    {
+      "step_number": 1,
+      "title_en": "Register CAN (Citizen Access Number)",
+      "title_ta": "CAN எண் பதிவு செய்தல்",
+      "instruction_en": "Log in to TN e-Sevai portal and verify your 13-digit CAN number with Aadhaar OTP.",
+      "instruction_ta": "தமிழ்நாடு இ-சேவை தளத்தில் உள்நுழைந்து உங்கள் 13 இலக்க CAN எண்ணை ஆதார் அல்லது குடும்ப அட்டை மூலம் பதிவு/சரிபார்க்கவும்."
+    },
+    {
+      "step_number": 2,
+      "title_en": "Select Revenue Department Service",
+      "title_ta": "வருவாய்த் துறை சேவையைத் தேர்ந்தெடுத்தல்",
+      "instruction_en": "Navigate to Revenue Department -> REV-101 Community Certificate.",
+      "instruction_ta": "வருவாய்த் துறை -> REV-101 சாதிச் சான்றிதழ் என்பதை தேர்வு செய்யவும்."
+    },
+    {
+      "step_number": 3,
+      "title_en": "Upload Mandatory Documents",
+      "title_ta": "ஆவணங்களைப் பதிவேற்றுதல்",
+      "instruction_en": "Upload scanned photo, address proof, parent's community certificate, and self-declaration.",
+      "instruction_ta": "புகைப்படம், முகவரிச் சான்று, பெற்றோரின் சாதிச் சான்றிதழ் மற்றும் சுய உறுதிமொழிப் படிவத்தைப் பதிவேற்றவும்."
+    },
+    {
+      "step_number": 4,
+      "title_en": "Pay Application Fee Online",
+      "title_ta": "விண்ணப்பக் கட்டணம் செலுத்துதல்",
+      "instruction_en": "Pay ₹60 fee online using UPI, Debit Card, or Net Banking and note the Application Acknowledgement Number.",
+      "instruction_ta": "₹60 கட்டணத்தை UPI அல்லது கார்டு மூலம் செலுத்தி விண்ணப்ப ரசீது எண்ணைப் பெற்றுக்கொள்ளவும்."
+    },
+    {
+      "step_number": 5,
+      "title_en": "Field Verification & Digital Download",
+      "title_ta": "கள ஆய்வு மற்றும் சான்றிதழ் பதிவிறக்கம்",
+      "instruction_en": "Village Administrative Officer (VAO) and Revenue Inspector (RI) will verify. Once approved by Deputy Tahsildar, download the digitally signed certificate.",
+      "instruction_ta": "VAO மற்றும் வருவாய் ஆய்வாளர் சரிபார்த்த பின், வட்டாட்சியர் கையொப்பமிட்ட சான்றிதழை இ-சேவை தளத்திலிருந்து பதிவிறக்கம் செய்யலாம்."
+    }
+  ],
+  "dependencies": [],
+  "outputs": {
+    "certificate_type": "Digitally Signed e-Certificate",
+    "digitally_signed": true,
+    "validity_period": "Permanent (Life-time validity unless officially cancelled)"
+  },
+  "official_sources": [
+    {
+      "title": "Tamil Nadu e-District / e-Sevai Citizen Portal",
+      "publisher": "Tamil Nadu e-Governance Agency (TNeGA)",
+      "url": "https://www.tnesevai.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    },
+    {
+      "title": "Revenue Administration Citizen Charter",
+      "publisher": "Revenue and Disaster Management Department, Government of Tamil Nadu",
+      "url": "https://revenue.tn.gov.in/",
+      "retrieval_date": "2026-10-22"
+    }
+  ],
+  "last_verified": "2026-10-22",
+  "verification_status": "VERIFIED",
+  "version": "1.0.0",
+  "review_notes": "Verified against Tamil Nadu e-Sevai service code REV-101. Lifetime validity confirmed."
+}
