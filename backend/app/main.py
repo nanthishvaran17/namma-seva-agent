@@ -31,8 +31,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 # Mount API V1
 app.include_router(api_v1_router)
+
+FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
 
 @app.get("/health", tags=["System Health"])
 async def health_check():
@@ -45,8 +54,12 @@ async def health_check():
         "llm_provider": settings.LLM_PROVIDER
     }
 
-@app.get("/", tags=["System Root"])
-async def root():
+@app.get("/{full_path:path}", tags=["Frontend Single Page App"])
+async def serve_frontend(full_path: str):
+    if FRONTEND_DIST.exists():
+        index_file = FRONTEND_DIST / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
     return {
         "message": "Namma Seva Agent AI Gateway is running.",
         "documentation": "/docs",

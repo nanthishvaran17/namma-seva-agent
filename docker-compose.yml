@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/Dockerfile.backend
+    container_name: namma_seva_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite+aiosqlite:///app/storage/namma_seva.db
+      - SECRET_KEY=namma-seva-prod-secret-change-me-2026
+      - LLM_PROVIDER=mock
+    volumes:
+      - app_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/Dockerfile.frontend
+    container_name: namma_seva_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  app_storage:

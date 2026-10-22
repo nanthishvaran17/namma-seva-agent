@@ -1,122 +1,149 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { Navbar } from './components/Navbar';
+import { HeroSearch } from './components/HeroSearch';
+import { CategoryExplorer } from './components/CategoryExplorer';
+import { TrustPrivacySection } from './components/TrustPrivacySection';
+import { AssistantChat } from './components/AssistantChat';
+import { ServicesDirectory } from './components/ServicesDirectory';
+import { CitizenDashboard } from './components/CitizenDashboard';
+import { AdminDashboard } from './components/AdminDashboard';
+import { WhatsAppSimulator } from './components/WhatsAppSimulator';
+import { AuthModal } from './components/AuthModal';
+import { ApiClient } from './services/api';
+import type { UserProfile } from './types';
+import { ShieldCheck } from 'lucide-react';
 
-function App() {
-  const [count, setCount] = useState(0)
+export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'services' | 'tasks' | 'whatsapp' | 'admin'>('home');
+  const [language, setLanguage] = useState<string>('ta');
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [pendingChatQuery, setPendingChatQuery] = useState<string | undefined>(undefined);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    // Check existing auth
+    if (ApiClient.getToken()) {
+      ApiClient.getProfile()
+        .then((profile) => setUser(profile))
+        .catch(() => {
+          ApiClient.setToken(null);
+          setUser(null);
+        });
+    }
+  }, []);
+
+  const handleHeroSearch = (query: string) => {
+    setPendingChatQuery(query);
+    setActiveTab('chat');
+  };
+
+  const handleSelectCategory = (catId: string) => {
+    setSelectedCategory(catId);
+    setActiveTab('services');
+  };
+
+  const handleStartTask = async (serviceId: string) => {
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    try {
+      await ApiClient.createTask(serviceId);
+      setActiveTab('tasks');
+    } catch (err: any) {
+      alert(`Could not initiate task: ${err.message}`);
+    }
+  };
+
+  const handleLogout = () => {
+    ApiClient.setToken(null);
+    setUser(null);
+    setActiveTab('home');
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-container">
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab as any}
+        language={language}
+        setLanguage={setLanguage}
+        user={user}
+        onOpenAuth={() => setAuthModalOpen(true)}
+        onLogout={handleLogout}
+      />
 
-      <div className="ticks"></div>
+      <main className="main-content">
+        {activeTab === 'home' && (
+          <>
+            <HeroSearch language={language} onSearch={handleHeroSearch} />
+            <CategoryExplorer language={language} onSelectCategory={handleSelectCategory} />
+            <TrustPrivacySection language={language} />
+          </>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        {activeTab === 'chat' && (
+          <AssistantChat
+            language={language}
+            initialQuery={pendingChatQuery}
+            onStartServiceTask={handleStartTask}
+          />
+        )}
+
+        {activeTab === 'services' && (
+          <ServicesDirectory
+            language={language}
+            initialCategory={selectedCategory}
+            onStartTask={handleStartTask}
+          />
+        )}
+
+        {activeTab === 'tasks' && user && (
+          <CitizenDashboard
+            language={language}
+            user={user}
+            onSelectService={() => setActiveTab('services')}
+          />
+        )}
+
+        {activeTab === 'whatsapp' && (
+          <WhatsAppSimulator />
+        )}
+
+        {activeTab === 'admin' && (
+          <AdminDashboard />
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer style={{ background: '#0a192f', color: '#94a3b8', padding: '2.5rem 1.5rem', marginTop: 'auto', borderTop: '1px solid #1e293b' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white', fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem' }}>
+              <ShieldCheck size={20} color="#ffb74d" />
+              <span>நம்ம சேவை (Namma Seva Agent AI)</span>
+            </div>
+            <div style={{ fontSize: '0.8rem', maxWidth: '500px', lineHeight: '1.5' }}>
+              Tamil Nadu's unified AI civic platform grounded in official Citizen Charters. An independent assistance technology developed in alignment with the DPDP Act 2023.
+            </div>
+          </div>
+
+          <div style={{ fontSize: '0.82rem', textAlign: 'right' }}>
+            <div>Emergency Helpline: <strong>1100 (CM Helpline)</strong></div>
+            <div style={{ marginTop: '0.2rem', color: '#64748b' }}>e-Sevai Portal: tnesevai.tn.gov.in</div>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </footer>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(loggedUser) => setUser(loggedUser)}
+      />
+    </div>
+  );
+};
 
-export default App
+export default App;
