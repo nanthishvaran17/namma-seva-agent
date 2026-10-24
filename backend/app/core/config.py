@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_AUTH_PER_MINUTE: int = 5
     RATE_LIMIT_CHAT_PER_MINUTE: int = 20
     RATE_LIMIT_UPLOAD_PER_MINUTE: int = 10
-    RATE_LIMIT_WEBHOOK_PER_MINUTE: int = 60
+    RATE_LIMIT_WEBHOOK_PER_MINUTE: int = 300  # Generous limit for high-volume authenticated Meta webhook events
 
     # AI & Integrations Configuration
     LLM_PROVIDER: str = "mock"  # "mock", "gemini", "openai"
@@ -94,6 +94,8 @@ class Settings(BaseSettings):
                 self.DOC_ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
             if not self.WHATSAPP_VERIFY_TOKEN:
                 self.WHATSAPP_VERIFY_TOKEN = "dev_verify_token_local"
+            if not self.WHATSAPP_APP_SECRET:
+                self.WHATSAPP_APP_SECRET = "dev_whatsapp_app_secret_16chars_min"
             return self
 
         # Non-development (production/staging or unset): strict fail-closed enforcement
@@ -107,6 +109,12 @@ class Settings(BaseSettings):
                 "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
                 "but DOC_ENCRYPTION_KEY is missing, insecure, or under 32 characters. "
                 "Document encryption requires a dedicated 256-bit key distinct from SECRET_KEY. Startup aborted."
+            )
+        if not self.WHATSAPP_APP_SECRET or len(self.WHATSAPP_APP_SECRET) < 16:
+            raise ValueError(
+                "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
+                "but WHATSAPP_APP_SECRET is missing or insecure (must be at least 16 characters). "
+                "Meta webhook signature verification requires an application secret in production. Startup aborted."
             )
         if self.DEMO_MODE:
             raise ValueError(

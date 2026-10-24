@@ -36,16 +36,21 @@ def redact_phone(phone: Optional[str]) -> str:
 def verify_meta_signature(raw_body: bytes, signature_header: Optional[str]) -> bool:
     """
     Cryptographically verifies the X-Hub-Signature-256 header using constant-time comparison.
+    Signature verification can NEVER be skipped outside dev/test environments.
     """
     app_secret = settings.WHATSAPP_APP_SECRET
-    if not app_secret:
-        # In non-production, if secret is not set, allow handshake if dev mode
-        if settings.ENVIRONMENT != "production":
-            return True
-        return False
+    env_clean = (settings.ENVIRONMENT or "production").strip().lower()
+    is_dev = env_clean in {"development", "dev", "test", "testing"}
 
-    if not signature_header or not signature_header.startswith("sha256="):
-        return False
+    if not is_dev:
+        if not app_secret or not signature_header or not signature_header.startswith("sha256="):
+            return False
+    else:
+        # In dev/test only: allow simulator handshake if secret and header are unset
+        if not app_secret and not signature_header:
+            return True
+        if not signature_header or not signature_header.startswith("sha256="):
+            return False
 
     expected_hash = hmac.new(
         key=app_secret.encode("utf-8"),
@@ -59,26 +64,45 @@ def verify_meta_signature(raw_body: bytes, signature_header: Optional[str]) -> b
 async def process_incoming_whatsapp_task(message_id: str, sender_phone: str, message_body: str):
     """
     Asynchronous worker dispatching agent query and delivering reply via WhatsApp Cloud API.
-    Decoupled from HTTP webhook acknowledgement.
+    Updates persistent deduplication status across state lifecycle:
+    received -> processing -> processed / failed.
     """
     masked_phone = redact_phone(sender_phone)
     logger.info("Starting background processing for message_id=%s from %s", message_id, masked_phone)
 
-    try:
-        history = [{"role": "user", "content": message_body}]
-        response = await agent_orchestrator.process_user_message(
-            history,
-            user_context={"channel": "WHATSAPP", "phone": sender_phone}
-        )
+    async with AsyncSessionLocal() as session:
+        dedupe_record = await session.get(WebhookDeduplicationModel, message_id)
+        if dedupe_record:
+            dedupe_record.status = "processing"
+            await session.commit()
 
-        # Dispatch reply back to citizen
-        await whatsapp_dispatcher.send_custom_message(
-            to_phone=sender_phone,
-            message_text=response.content
-        )
-        logger.info("Successfully dispatched WhatsApp reply for message_id=%s to %s", message_id, masked_phone)
-    except Exception as e:
-        logger.error("Error processing background WhatsApp task for message_id=%s: %s", message_id, e)
+        try:
+            history = [{"role": "user", "content": message_body}]
+            response = await agent_orchestrator.process_user_message(
+                history,
+                user_context={"channel": "WHATSAPP", "phone": sender_phone}
+            )
+
+            # Dispatch reply back to citizen
+            await whatsapp_dispatcher.send_message(
+                to_phone=sender_phone,
+                message=response.content
+            )
+
+            if dedupe_record:
+                dedupe_record.status = "processed"
+                dedupe_record.error_message = None
+                await session.commit()
+
+            logger.info("Successfully processed and delivered WhatsApp reply for message_id=%s to %s", message_id, masked_phone)
+
+        except Exception as e:
+            if dedupe_record:
+                dedupe_record.status = "failed"
+                dedupe_record.error_message = str(e)[:500]
+                await session.commit()
+
+            logger.error("Error processing background WhatsApp task for message_id=%s: %s", message_id, e)
 
 @router.get("/webhook")
 async def verify_whatsapp_webhook(
@@ -104,8 +128,10 @@ async def receive_whatsapp_webhook(
     """
     Handles incoming production WhatsApp messages:
     1. Reads raw bytes before parsing
-    2. Enforces HMAC-SHA256 signature verification
-    3. Persistently deduplicates message_id in database
+    2. Enforces HMAC-SHA256 signature verification (never skipped outside dev/test)
+    3. Retry-safe persistent database deduplication:
+       - 'received' / 'processing' / 'processed': skipped to prevent duplicate runs
+       - 'failed': allowed to retry on Meta redelivery
     4. Enqueues processing into background tasks
     5. Returns 200 OK immediately
     """
@@ -113,13 +139,12 @@ async def receive_whatsapp_webhook(
     sig_header = request.headers.get("X-Hub-Signature-256")
 
     # 1. Enforce HMAC Signature verification
-    if settings.WHATSAPP_APP_SECRET or settings.ENVIRONMENT == "production":
-        if not verify_meta_signature(raw_body, sig_header):
-            logger.warning("Rejected WhatsApp webhook: invalid or missing X-Hub-Signature-256 signature.")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid or missing X-Hub-Signature-256 webhook signature"
-            )
+    if not verify_meta_signature(raw_body, sig_header):
+        logger.warning("Rejected WhatsApp webhook: invalid or missing X-Hub-Signature-256 signature.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid or missing X-Hub-Signature-256 webhook signature"
+        )
 
     try:
         payload = json.loads(raw_body.decode("utf-8"))
@@ -138,31 +163,46 @@ async def receive_whatsapp_webhook(
                 if not message_id:
                     continue
 
-                # 2. Persistent Database Deduplication
+                # 2. Retry-Safe Persistent Database Deduplication
                 existing = await db.get(WebhookDeduplicationModel, message_id)
+                should_enqueue = False
+
                 if existing:
-                    logger.info("Skipping duplicate webhook message_id=%s (already processed)", message_id)
-                    continue
-
-                sender = msg.get("from", "")
-                sender_hash = hashlib.sha256(sender.encode("utf-8")).hexdigest()
-
-                dedupe_entry = WebhookDeduplicationModel(
-                    message_id=message_id,
-                    sender_id_hash=sender_hash,
-                    channel="whatsapp"
-                )
-                db.add(dedupe_entry)
-                try:
-                    await db.commit()
-                except IntegrityError:
-                    await db.rollback()
-                    logger.info("Concurrent duplicate message_id=%s caught on insert; skipping", message_id)
-                    continue
+                    if existing.status in ("processed", "processing"):
+                        logger.info("Skipping duplicate webhook message_id=%s (status=%s)", message_id, existing.status)
+                        continue
+                    elif existing.status == "failed":
+                        logger.info("Allowing retry for previously failed message_id=%s (retry_count=%d)", message_id, existing.retry_count)
+                        existing.status = "received"
+                        existing.retry_count += 1
+                        db.add(existing)
+                        await db.commit()
+                        should_enqueue = True
+                    else:
+                        # Already received and queued
+                        continue
+                else:
+                    sender = msg.get("from", "")
+                    sender_hash = hashlib.sha256(sender.encode("utf-8")).hexdigest()
+                    dedupe_entry = WebhookDeduplicationModel(
+                        message_id=message_id,
+                        sender_id_hash=sender_hash,
+                        status="received",
+                        channel="whatsapp"
+                    )
+                    db.add(dedupe_entry)
+                    try:
+                        await db.commit()
+                        should_enqueue = True
+                    except IntegrityError:
+                        await db.rollback()
+                        logger.info("Concurrent duplicate message_id=%s caught on insert; skipping", message_id)
+                        continue
 
                 # 3. Asynchronous Worker Execution
-                if msg.get("type") == "text":
+                if should_enqueue and msg.get("type") == "text":
                     body_text = msg.get("text", {}).get("body", "")
+                    sender = msg.get("from", "")
                     background_tasks.add_task(
                         process_incoming_whatsapp_task,
                         message_id=message_id,
