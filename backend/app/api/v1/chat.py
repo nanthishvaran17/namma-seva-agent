@@ -5,15 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.app.db.session import get_db
 from backend.app.models.conversation import ConversationModel, MessageModel
-from backend.app.models.user import User
+from backend.app.core.config import settings
+from backend.app.core.rate_limit import RateLimiter
 from backend.app.schemas.chat import ChatRequest, ChatResponse, Citation
 from backend.app.agent.orchestrator import agent_orchestrator
 from backend.app.api.deps import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["Conversational AI Assistant"])
 
-@router.post("", response_model=ChatResponse)
-@router.post("/", response_model=ChatResponse)
+chat_rate_limit = Depends(RateLimiter(key_prefix="chat"))
+
+@router.post("", response_model=ChatResponse, dependencies=[chat_rate_limit])
+@router.post("/", response_model=ChatResponse, dependencies=[chat_rate_limit])
 async def chat_with_agent(
     req: ChatRequest,
     current_user: Optional[User] = Depends(get_current_user),

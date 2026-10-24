@@ -13,10 +13,16 @@ from backend.app.models.reminder import ReminderModel
 from backend.app.models.conversation import ConversationModel
 from backend.app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, ConsentCreate, ConsentResponse
 from backend.app.api.deps import require_current_user
+from backend.app.core.rate_limit import RateLimiter, get_client_ip
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Privacy"])
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(key_prefix="auth_register"))]
+)
 async def register_citizen(user_in: UserCreate, request: Request, db: AsyncSession = Depends(get_db)):
     # Check if user already exists
     res = await db.execute(select(User).where(User.email == user_in.email))
@@ -33,12 +39,14 @@ async def register_citizen(user_in: UserCreate, request: Request, db: AsyncSessi
     db.add(new_user)
     await db.flush()
 
+    client_ip = get_client_ip(request)
+
     # Initial DPDP consent
     initial_consent = UserConsent(
         user_id=new_user.id,
         consent_purpose="CITIZEN_SERVICE_ASSISTANCE",
         is_granted=True,
-        ip_address=request.client.host if request.client else None
+        ip_address=client_ip
     )
     db.add(initial_consent)
 
@@ -48,7 +56,7 @@ async def register_citizen(user_in: UserCreate, request: Request, db: AsyncSessi
         action="USER_REGISTRATION",
         resource_type="USER",
         resource_id=new_user.id,
-        ip_address=request.client.host if request.client else None,
+        ip_address=client_ip,
         details={"email": new_user.email}
     )
     db.add(audit)
@@ -60,19 +68,24 @@ async def register_citizen(user_in: UserCreate, request: Request, db: AsyncSessi
         user=UserResponse.model_validate(new_user)
     )
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(RateLimiter(key_prefix="auth_login"))]
+)
 async def login_citizen(login_data: UserLogin, request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.email == login_data.email))
     user = res.scalar_one_or_none()
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
+    client_ip = get_client_ip(request)
     audit = AuditLogModel(
         user_id=user.id,
         action="USER_LOGIN",
         resource_type="USER",
         resource_id=user.id,
-        ip_address=request.client.host if request.client else None,
+        ip_address=client_ip,
         details={"email": user.email}
     )
     db.add(audit)

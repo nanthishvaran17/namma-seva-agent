@@ -13,10 +13,16 @@ from backend.app.models.user import User
 from backend.app.schemas.document import DocumentResponse, DocumentCorrectionRequest
 from backend.app.api.deps import require_current_user
 from backend.app.documents.processor import document_processor
+from backend.app.core.rate_limit import RateLimiter
 
 router = APIRouter(prefix="/documents", tags=["Document Intelligence & Processing"])
 
-@router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/upload",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(key_prefix="doc_upload"))]
+)
 async def upload_document(
     file: UploadFile = File(...),
     doc_code: str = Form(...),

@@ -14,6 +14,7 @@ from backend.app.db.session import get_db, AsyncSessionLocal
 from backend.app.models.webhook import WebhookDeduplicationModel
 from backend.app.agent.orchestrator import agent_orchestrator
 from backend.app.automation.whatsapp_dispatcher import whatsapp_dispatcher
+from backend.app.core.rate_limit import RateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,10 @@ async def verify_whatsapp_webhook(
     logger.warning("WhatsApp webhook handshake failed: verify token mismatch.")
     raise HTTPException(status_code=403, detail="Verification token mismatch")
 
-@router.post("/webhook")
+@router.post(
+    "/webhook",
+    dependencies=[Depends(RateLimiter(key_prefix="whatsapp_webhook"))]
+)
 async def receive_whatsapp_webhook(
     request: Request,
     background_tasks: BackgroundTasks,

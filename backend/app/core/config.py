@@ -59,6 +59,14 @@ class Settings(BaseSettings):
         "image/webp"
     ]
 
+    # Rate Limiting & Proxy Configuration
+    RATE_LIMIT_ENABLED: bool = True
+    TRUSTED_PROXIES: List[str] = []  # e.g. ["127.0.0.1", "10.0.0.0/8"]. If empty, X-Forwarded-For is never trusted.
+    RATE_LIMIT_AUTH_PER_MINUTE: int = 5
+    RATE_LIMIT_CHAT_PER_MINUTE: int = 20
+    RATE_LIMIT_UPLOAD_PER_MINUTE: int = 10
+    RATE_LIMIT_WEBHOOK_PER_MINUTE: int = 60
+
     # AI & Integrations Configuration
     LLM_PROVIDER: str = "mock"  # "mock", "gemini", "openai"
     GEMINI_API_KEY: str = ""
