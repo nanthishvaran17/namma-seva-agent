@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, Smartphone, ShieldCheck, CheckCheck } from 'lucide-react';
 import { ApiClient } from '../services/api';
+import { FormattedText } from './FormattedText';
 
 export const WhatsAppSimulator: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'agent'; text: string; time: string }>>([
@@ -66,7 +67,7 @@ export const WhatsAppSimulator: React.FC = () => {
         <div className="phone-screen">
           {messages.map((m, idx) => (
             <div key={idx} className={`wa-bubble ${m.sender === 'user' ? 'outgoing' : 'incoming'}`}>
-              <div style={{ whiteSpace: 'pre-wrap' }}>{m.text}</div>
+              <FormattedText content={m.text} />
               <div style={{ fontSize: '0.65rem', color: '#8696a0', textAlign: 'right', marginTop: '3px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
                 <span>{m.time}</span>
                 {m.sender === 'user' && <CheckCheck size={12} color="#53bdeb" />}

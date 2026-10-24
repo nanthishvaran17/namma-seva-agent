@@ -20,8 +20,8 @@ def test_playbooks_load_and_validate():
         assert service["service_id"] == s_id
         assert service["name_en"]
         assert service["name_ta"]
-        assert len(service["official_sources"]) > 0
-        assert service["verification_status"] == "VERIFIED"
+        assert service["verification_status"] == "NEEDS_VERIFICATION"
+        assert service["verified_by"] == "PENDING_OFFICIAL_VERIFICATION"
 
 def test_dependency_resolution_post_matric_scholarship():
     loader = PlaybookLoader()

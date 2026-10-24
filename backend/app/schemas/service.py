@@ -38,6 +38,8 @@ class ServiceListItem(BaseModel):
     processing_time: ProcessingTime
     dependencies: List[str]
     verification_status: str
+    verified_by: Optional[str] = None
+    last_verified: Optional[str] = None
 
 class EligibilityCheckRequest(BaseModel):
     service_id: str

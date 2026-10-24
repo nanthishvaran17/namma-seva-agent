@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, MessageSquare, Compass, CheckSquare, Smartphone, UserCheck, LogOut, Lock } from 'lucide-react';
+import { ShieldCheck, MessageSquare, Compass, CheckSquare, UserCheck, LogOut, Lock } from 'lucide-react';
 import type { UserProfile } from '../types';
 
 interface NavbarProps {
@@ -75,14 +75,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <CheckSquare size={17} />
             <span>{language === 'ta' ? 'என் பணிகள்' : 'My Tasks'}</span>
-          </button>
-
-          <button
-            className={`nav-btn ${activeTab === 'whatsapp' ? 'active' : ''}`}
-            onClick={() => setActiveTab('whatsapp')}
-          >
-            <Smartphone size={17} />
-            <span>WhatsApp</span>
           </button>
 
           {user?.role === 'ADMIN' && (

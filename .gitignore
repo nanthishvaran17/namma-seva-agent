@@ -30,6 +30,7 @@ ENV/
 storage/uploads/
 storage/namma_seva.db
 backend/namma_seva.db
+backend/namma_seva_test.db
 
 # Node / Frontend
 node_modules/

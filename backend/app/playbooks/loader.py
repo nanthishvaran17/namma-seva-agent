@@ -51,7 +51,7 @@ class PlaybookLoader:
             "service_id", "name_en", "name_ta", "description_en", "description_ta",
             "department", "category", "portal_url", "eligibility_rules",
             "required_documents", "fee", "processing_time", "application_steps",
-            "dependencies", "official_sources", "last_verified", "verification_status", "version"
+            "dependencies", "official_sources", "last_verified", "verified_by", "verification_status", "version"
         ]
         for field in required_fields:
             if field not in data:
@@ -61,8 +61,27 @@ class PlaybookLoader:
             raise ValueError(f"Playbook {filename} has no official sources listed.")
 
         valid_statuses = {"DRAFT", "NEEDS_VERIFICATION", "VERIFIED", "RETIRED"}
-        if data["verification_status"] not in valid_statuses:
-            raise ValueError(f"Playbook {filename} invalid verification_status '{data['verification_status']}'.")
+        status = data.get("verification_status")
+        if status not in valid_statuses:
+            raise ValueError(f"Playbook {filename} invalid verification_status '{status}'.")
+
+        verified_by = str(data.get("verified_by", "")).strip()
+        last_verified = data.get("last_verified")
+
+        # Invariant: A playbook with pending verification cannot carry a last_verified date.
+        if verified_by.startswith("PENDING") or status != "VERIFIED":
+            if last_verified is not None:
+                raise ValueError(
+                    f"Playbook {filename} has unverified status ({verified_by} / {status}) "
+                    f"and cannot carry a last_verified date. 'last_verified' must be null until verified against official sources."
+                )
+
+        # Invariant: A verified playbook must have a non-pending verified_by and a non-null last_verified date.
+        if status == "VERIFIED":
+            if not last_verified or verified_by.startswith("PENDING"):
+                raise ValueError(
+                    f"Playbook {filename} is marked VERIFIED but lacks a valid last_verified date or has pending verified_by."
+                )
 
     @property
     def catalog(self) -> Dict[str, Dict[str, Any]]:

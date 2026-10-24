@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy import String, DateTime, Text, Float, JSON, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.app.db.session import Base
@@ -29,8 +30,9 @@ class ServicePlaybookModel(Base):
     dependencies: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     outputs: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
-    last_verified: Mapped[str] = mapped_column(String(50), nullable=False)
-    verification_status: Mapped[str] = mapped_column(String(50), default="VERIFIED", nullable=False, index=True) # DRAFT, NEEDS_VERIFICATION, VERIFIED, RETIRED
+    last_verified: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    verified_by: Mapped[str] = mapped_column(String(100), default="PENDING_OFFICIAL_VERIFICATION", nullable=False)
+    verification_status: Mapped[str] = mapped_column(String(50), default="NEEDS_VERIFICATION", nullable=False, index=True) # DRAFT, NEEDS_VERIFICATION, VERIFIED, RETIRED
     version: Mapped[str] = mapped_column(String(20), default="1.0.0", nullable=False)
     review_notes: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

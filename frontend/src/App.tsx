@@ -7,14 +7,15 @@ import { AssistantChat } from './components/AssistantChat';
 import { ServicesDirectory } from './components/ServicesDirectory';
 import { CitizenDashboard } from './components/CitizenDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
-import { WhatsAppSimulator } from './components/WhatsAppSimulator';
 import { AuthModal } from './components/AuthModal';
+import { FloatingWhatsApp } from './components/FloatingWhatsApp';
+import { BottomNav } from './components/BottomNav';
 import { ApiClient } from './services/api';
 import type { UserProfile } from './types';
 import { ShieldCheck } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'services' | 'tasks' | 'whatsapp' | 'admin'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'services' | 'tasks' | 'admin'>('home');
   const [language, setLanguage] = useState<string>('ta');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -77,8 +78,18 @@ export const App: React.FC = () => {
       <main className="main-content">
         {activeTab === 'home' && (
           <>
-            <HeroSearch language={language} onSearch={handleHeroSearch} />
-            <CategoryExplorer language={language} onSelectCategory={handleSelectCategory} />
+            <HeroSearch
+              language={language}
+              onSearch={handleHeroSearch}
+              onSelectStoryService={(svcId) => {
+                handleHeroSearch(`Tell me requirements, checklist, and eligibility for ${svcId}`);
+              }}
+            />
+            <CategoryExplorer
+              language={language}
+              onSelectCategory={handleSelectCategory}
+              onStartService={(svcId) => handleStartTask(svcId)}
+            />
             <TrustPrivacySection language={language} />
           </>
         )}
@@ -130,34 +141,42 @@ export const App: React.FC = () => {
           )
         )}
 
-        {activeTab === 'whatsapp' && (
-          <WhatsAppSimulator />
-        )}
-
         {activeTab === 'admin' && (
           <AdminDashboard />
         )}
       </main>
 
       {/* Footer */}
-      <footer style={{ background: '#0a192f', color: '#94a3b8', padding: '2.5rem 1.5rem', marginTop: 'auto', borderTop: '1px solid #1e293b' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <footer className="app-footer">
+        <div className="footer-inner">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white', fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem' }}>
-              <ShieldCheck size={20} color="#ffb74d" />
+            <div className="footer-brand">
+              <ShieldCheck size={22} color="#ffb74d" />
               <span>நம்ம சேவை (Namma Seva Agent AI)</span>
             </div>
-            <div style={{ fontSize: '0.8rem', maxWidth: '500px', lineHeight: '1.5' }}>
+            <div className="footer-tagline">
               Tamil Nadu's unified AI civic platform grounded in official Citizen Charters. An independent assistance technology developed in alignment with the DPDP Act 2023.
             </div>
           </div>
 
-          <div style={{ fontSize: '0.82rem', textAlign: 'right' }}>
-            <div>Emergency Helpline: <strong>1100 (CM Helpline)</strong></div>
-            <div style={{ marginTop: '0.2rem', color: '#64748b' }}>e-Sevai Portal: tnesevai.tn.gov.in</div>
+          <div className="footer-helpline">
+            <div>24x7 Helpline: <strong style={{ color: '#ffb74d' }}>1100 (CM Helpline)</strong></div>
+            <div style={{ marginTop: '0.2rem', color: '#94a3b8' }}>Official e-Sevai Portal: tnesevai.tn.gov.in</div>
           </div>
         </div>
       </footer>
+
+      {/* Floating WhatsApp Quick Assistant Widget */}
+      <FloatingWhatsApp language={language} />
+
+      {/* Mobile-First Bottom Navigation Bar (WhatsApp, Meesho & Insta style) */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab as any}
+        language={language}
+        user={user}
+        onOpenAuth={() => setAuthModalOpen(true)}
+      />
 
       {/* Auth Modal */}
       <AuthModal

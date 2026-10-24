@@ -50,7 +50,8 @@ class MockLLMProvider(LLMProviderInterface):
                 action_cards=[esc_res]
             )
 
-        # 3. Scholarship (Post-Matric) - Check first before general income/community checks
+
+        # 4. Scholarship (Post-Matric) - Check first before general income/community checks
         if any(kw in msg_lower for kw in ["scholarship", "கல்வி உதவித்தொகை", "உதவித்தொகை", "போஸ்ட் மெட்ரிக்", "போஸ்ட்-மெட்ரிக்", "post-matric", "bc scholarship", "sc scholarship", "aadhaar seeding"]):
             plan = tool_registry.execute_tool("create_action_plan", {"service_id": "post_matric_scholarship"})
             details = tool_registry.execute_tool("get_service_details", {"service_id": "post_matric_scholarship"})

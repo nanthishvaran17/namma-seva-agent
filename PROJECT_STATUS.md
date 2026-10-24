@@ -1,7 +1,7 @@
 # Namma Seva Agent AI — Project Status
 
-**Current Status:** All Milestones 1 through 7 Verified & Operational  
-**Date:** 2026-10-22  
+**Current Status:** Wave 0 Operational Hardening & Remediation in Progress  
+**Date:** 2026-10-24  
 **Region:** Tamil Nadu, India  
 **Languages Supported:** Tamil (தமிழ்), Tanglish, English  
 
@@ -16,22 +16,22 @@
   - Node.js: v24.18.0
   - npm: 11.16.0
   - Git: 2.55.0.windows.3
-- **Database Engine:** SQLAlchemy 2.0 Async with aiosqlite for zero-dependency local dev/tests, and PostgreSQL support for production.
-- **Frontend Stack:** React 19, Vite 8, TypeScript 6, Lucide Icons, Custom High-Performance Civic Design System.
+- **Database Engine:** SQLAlchemy 2.0 Async (SQLite with foreign key enforcement and PostgreSQL support for production).
+- **Frontend Stack:** React 19, Vite 8, TypeScript, Lucide Icons, Civic Pre-fill & Application System.
 
 ---
 
 ## 2. Milestone Execution & Verification Tracker
 
-| Milestone | Scope | Status | Execution Evidence |
+| Milestone | Scope | Real Status | Verification Evidence & Notes |
 |:---|:---|:---:|:---|
-| **Milestone 1 — Foundation** | DB schema, models, playbook schema, 5 TN playbooks, deterministic dependency planner, DAG topological sort, cycle detection, service search | **COMPLETE** | `backend/tests/test_playbooks_and_planning.py` (6/6 tests PASSED) |
-| **Milestone 2 — AI Agent Engine** | LLM provider abstraction, Mock provider with Tamil/Tanglish/English linguistic grounding, tool registry, prompt injection defense, 50-case benchmark | **COMPLETE** | `backend/tests/test_agent_evaluation.py` (50 benchmark cases evaluated, PASSED) |
-| **Milestone 3 — Product UI** | Responsive landing page, conversational hero search, category explorer, trust & privacy section, AI chat with source badges, service directory, citizen dashboard, admin review view, WhatsApp simulator | **COMPLETE** | `npm run build` in `frontend/` generated production bundle cleanly in 450ms |
-| **Milestone 4 — Documents & Reminders** | Secure file upload endpoint with MIME & size validation, OCR abstraction with Tamil Nadu field extraction, user verification, reminder scheduler | **COMPLETE** | `backend/app/api/v1/documents.py`, `backend/app/api/v1/reminders.py` |
-| **Milestone 5 — Admin & Verification** | Playbook review queue, status transitions (`DRAFT`, `NEEDS_VERIFICATION`, `VERIFIED`, `RETIRED`), security audit event logging, unmasked PII exclusion | **COMPLETE** | `backend/app/api/v1/admin.py`, audited transitions in tests |
-| **Milestone 6 — External Integrations** | WhatsApp Cloud API webhook handshake & local simulator, LLM provider abstraction (Gemini/Mock), Docker & Compose configs | **COMPLETE** | `backend/app/api/v1/whatsapp.py`, `docker-compose.yml`, `infrastructure/` |
-| **Milestone 7 — Production Readiness** | Full automated API integration test suite, DPDP 2023 compliance tests, data export/deletion workflows, CI workflow | **COMPLETE** | `pytest backend/tests/ -v` (13/13 test suites PASSED in 1.63s) |
+| **Milestone 1 — Foundation** | DB schema, models, playbook schema, 5 TN playbooks, deterministic dependency planner, DAG topological sort, cycle detection, service search | **OPERATIONAL** | `backend/tests/test_playbooks_and_planning.py` (6/6 tests PASSED) |
+| **Milestone 2 — AI Agent Engine** | LLM provider abstraction, Mock provider with keyword baseline, tool registry; real frontier LLM scheduled for Wave 2 | **BASELINE MOCK** | `backend/tests/test_agent_evaluation.py` (50 regression cases evaluated; 150+ case eval in Wave 2) |
+| **Milestone 3 — Product UI** | Responsive landing page, conversational hero search, category explorer, trust & privacy section, AI chat, application pre-fill sheet, citizen dashboard, WhatsApp simulator | **OPERATIONAL** | `npm run build` in `frontend/` generated production bundle cleanly in 636ms |
+| **Milestone 4 — Documents & Reminders** | Secure file upload endpoint with MIME validation, DEMO Mock OCR extraction (Real Vision model scheduled for Phase B) | **DEMO STUB** | Gated behind `DEMO_MODE=true`; real vision extraction planned in Phase B |
+| **Milestone 5 — Admin & Verification** | Playbook review queue, status transitions (`DRAFT`, `NEEDS_VERIFICATION`, `VERIFIED`), audit logging | **IN PROGRESS** | Status updates in-memory; file/DB persistence scheduled in Wave 1 |
+| **Milestone 6 — External Integrations** | WhatsApp Cloud API webhook handshake & local simulator | **PARTIAL STUB** | Handshake verified; HMAC-SHA256 signature verification & outbound dispatcher in Wave 1 |
+| **Milestone 7 — Production Readiness** | DPDP 2023 compliance tests, data export/deletion workflows, secret hardening | **IN PROGRESS** | Wave 0 security hardening active (secrets, foreign keys, storage purge) |
 
 ---
 

@@ -65,7 +65,7 @@ async def upload_document(
         storage_path=stored_path,
         mime_type=file.content_type,
         file_size_bytes=len(content),
-        ocr_status="PROCESSED",
+        ocr_status="DEMO_PROCESSED" if settings.DEMO_MODE else "PENDING_PHASE_B_OCR",
         extracted_fields=extracted,
         is_verified_by_user=False
     )

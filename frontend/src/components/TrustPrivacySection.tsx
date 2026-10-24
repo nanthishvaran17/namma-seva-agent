@@ -18,8 +18,8 @@ export const TrustPrivacySection: React.FC<TrustPrivacySectionProps> = ({ langua
     {
       q_ta: 'என் ஆவணங்கள் மற்றும் தகவல்கள் பாதுகாப்பாக இருக்குமா?',
       q_en: 'Are my uploaded documents and information safe?',
-      a_ta: 'ஆம். டிஜிட்டல் தனிநபர் தரவு பாதுகாப்புச் சட்டம் (DPDP Act 2023) படி, உங்கள் ஆவணங்கள் பிரத்யேகமாக என்க்ரிப்ட் செய்யப்பட்டு சேமிக்கப்படுகின்றன. உங்கள் ஒப்புதல் இன்றி யாருடனும் பகிரப்படாது. எந்த நேரத்திலும் உங்கள் தரவை முழுமையாக பதிவிறக்கவோ அல்லது நிரந்தரமாக அழிக்கவோ உரிமை உண்டு.',
-      a_en: 'Yes. In strict alignment with the Digital Personal Data Protection (DPDP) Act 2023, all documents are encrypted at rest and in transit. Your documents are used solely for your active application guidance and can be permanently deleted with one click.'
+      a_ta: 'ஆம். டிஜிட்டல் தனிநபர் தரவு பாதுகாப்புச் சட்டம் (DPDP Act 2023) படி, உங்கள் ஆவணங்கள் தனித்தனியான பயனர் கோப்பகங்களில் TLS பாதுகாப்புடன் சேமிக்கப்படுகின்றன (AES-256-GCM என்க்ரிப்ஷன் அடுத்த கட்டத்தில் சேர்க்கப்பட உள்ளது). உங்கள் ஒப்புதல் இன்றி யாருடனும் பகிரப்படாது. எந்த நேரத்திலும் உங்கள் தரவை முழுமையாக பதிவிறக்கவோ அல்லது நிரந்தரமாக அழிக்கவோ உரிமை உண்டு.',
+      a_en: 'Yes. In alignment with the Digital Personal Data Protection (DPDP) Act 2023, documents are stored in isolated per-user storage with TLS transit protection (AES-256-GCM encryption at rest is planned). Your documents are used solely for your active application guidance and can be permanently deleted with one click.'
     },
     {
       q_ta: 'AI தளம் எனது சார்பாக நேரடியாக விண்ணப்பம் சமர்ப்பிக்குமா?',
@@ -87,7 +87,7 @@ export const TrustPrivacySection: React.FC<TrustPrivacySectionProps> = ({ langua
       </div>
 
       {/* FAQ Accordion */}
-      <div style={{ maxWidth: '800px', margin: '0 auto', background: 'white', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.75rem', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', background: 'white', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '2rem 2.5rem', boxShadow: 'var(--shadow-sm)' }}>
         <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--primary)' }}>
           {language === 'ta' ? 'அடிக்கடி கேட்கப்படும் கேள்விகள் (FAQ)' : 'Frequently Asked Questions'}
         </h3>

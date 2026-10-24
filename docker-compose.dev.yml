@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/Dockerfile.backend
+    container_name: namma_seva_backend_dev
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DEMO_MODE=true
+      - SECRET_KEY=dev-insecure-key-never-use-in-production-min32chars
+      - WHATSAPP_VERIFY_TOKEN=dev_verify_token_local
+      - DATABASE_URL=sqlite+aiosqlite:///app/storage/namma_seva_dev.db
+      - LLM_PROVIDER=mock
+    volumes:
+      - app_storage_dev:/app/storage
+      - ./backend:/app/backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/Dockerfile.frontend
+    container_name: namma_seva_frontend_dev
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  app_storage_dev:

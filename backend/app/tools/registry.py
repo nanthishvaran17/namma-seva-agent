@@ -128,6 +128,18 @@ class ToolRegistry:
                         "service_id": {"type": "string"}
                     }
                 }
+            },
+
+            {
+                "name": "track_application_status",
+                "description": "Track live status of an Application Reference Number (ARN) on e-District portal.",
+                "parameters": {
+                    "type": "object",
+                    "required": ["arn"],
+                    "properties": {
+                        "arn": {"type": "string"}
+                    }
+                }
             }
         ]
 
@@ -302,6 +314,16 @@ class ToolRegistry:
                 "ticket_reference": "ESC-TN-2026-9182",
                 "message_en": "Your request has been forwarded to human assistance. A representative will review the case.",
                 "message_ta": "உங்கள் கோரிக்கை மனித உதவிக்கு அனுப்பப்பட்டுள்ளது. அதிகாரிகள் இதனை ஆய்வு செய்வார்கள்."
+            }
+
+        elif name == "track_application_status":
+            arn = arguments.get("arn", "").strip()
+            return {
+                "arn": arn,
+                "portal_name": "Tamil Nadu e-District Status Tracking",
+                "tracking_url": f"https://edistricts.tn.gov.in/revenue/status.html?arn={arn}",
+                "instruction_en": f"Visit the official TN e-District portal at https://edistricts.tn.gov.in/revenue/status.html?arn={arn} to view real-time department scrutiny status.",
+                "instruction_ta": f"அரசு இ-டிஸ்ட்ரிக்ட் தளத்தில் உங்கள் விண்ணப்ப நிலையை அறிய https://edistricts.tn.gov.in/revenue/status.html?arn={arn} தளத்திற்கு செல்லவும்."
             }
 
         else:

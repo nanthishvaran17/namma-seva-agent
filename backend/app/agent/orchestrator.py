@@ -11,8 +11,12 @@ class AgentOrchestrator:
     and verified source grounding.
     """
 
-    def __init__(self):
-        self.provider = get_llm_provider()
+    def __init__(self, provider: Optional[Any] = None):
+        self._provider = provider
+
+    @property
+    def provider(self):
+        return self._provider or get_llm_provider()
 
     async def process_user_message(
         self,

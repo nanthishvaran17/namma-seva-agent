@@ -2,12 +2,15 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from backend.app.main import app
 
-from backend.app.db.session import engine, Base
+from backend.app.db.session import engine, Base, AsyncSessionLocal
+from backend.app.playbooks.seeder import sync_playbooks_to_db
 
 @pytest.fixture(autouse=True)
 async def init_test_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    async with AsyncSessionLocal() as session:
+        await sync_playbooks_to_db(session)
     yield
 
 @pytest.fixture
@@ -62,8 +65,9 @@ async def test_action_plan_api(client):
 
 @pytest.mark.asyncio
 async def test_auth_and_user_task_flow(client):
-    # 1. Register a new citizen
-    email = "citizen.test@nammaseva.tn.gov.in"
+    # 1. Register a new citizen (unique per test run)
+    import uuid
+    email = f"citizen.test.{uuid.uuid4().hex[:6]}@nammaseva.tn.gov.in"
     reg_payload = {
         "email": email,
         "password": "SecurePassword123!",

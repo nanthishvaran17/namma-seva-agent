@@ -59,3 +59,13 @@ async def simulate_whatsapp_interaction(data: SimulateWhatsAppMessage):
         "citations": response.citations,
         "action_cards": response.action_cards
     }
+
+@router.post("/send")
+async def send_whatsapp_message(data: SimulateWhatsAppMessage):
+    """Dispatches an outgoing WhatsApp message to a phone number."""
+    from backend.app.automation.whatsapp_dispatcher import whatsapp_dispatcher
+    result = await whatsapp_dispatcher.send_custom_message(
+        to_phone=data.from_phone,
+        message_text=data.message_text
+    )
+    return result

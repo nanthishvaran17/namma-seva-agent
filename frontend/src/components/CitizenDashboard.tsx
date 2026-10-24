@@ -137,30 +137,28 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     }
   };
 
-  // Instant Full Automation: auto-fill documents, verify, and issue certificate immediately
+  // Demo Mode: Fast-fill sample checklist to preview the application pre-fill sheet
   const handleAutoFastTrack = async (task: UserTask) => {
     try {
       setScanningDoc(`${task.id}-all`);
-      // Simulate rapid AI multi-document scan
-      await new Promise((res) => setTimeout(res, 800));
+      await new Promise((res) => setTimeout(res, 600));
 
       // 1. Advance to READY_FOR_USER_REVIEW
-      await ApiClient.updateTaskStatus(task.id, 'READY_FOR_USER_REVIEW', 'AI auto-scanned all documents');
+      await ApiClient.updateTaskStatus(task.id, 'READY_FOR_USER_REVIEW', 'DEMO: Pre-filled sample document checklist');
       // 2. Advance to READY_TO_SUBMIT
-      await ApiClient.updateTaskStatus(task.id, 'READY_TO_SUBMIT', 'Eligibility rules verified by AI');
-      // 3. Complete and issue certificate
-      await ApiClient.updateTaskStatus(task.id, 'COMPLETED', 'Official e-Sevai e-Seal issued');
+      await ApiClient.updateTaskStatus(task.id, 'READY_TO_SUBMIT', 'DEMO: Pre-fill details verified');
+      // 3. Mark completed for pre-fill generation
+      await ApiClient.updateTaskStatus(task.id, 'COMPLETED', 'DEMO: Ready for portal submission');
 
       await loadTasks();
-      // Immediately open Certificate modal
       setActiveCertTask({ ...task, status: 'COMPLETED' });
       setMessage(
         language === 'ta'
-          ? '🎉 வாழ்த்துகள்! உங்கள் விண்ணப்பம் AI மூலம் உடனடியாகச் சரிபார்க்கப்பட்டு அரசு சான்றிதழ் வழங்கப்பட்டுள்ளது!'
-          : '🎉 Congratulations! Your application has been fully automated and officially issued!'
+          ? 'விண்ணப்ப முன்-நிரப்பு விவரத் தாள் மாதிரி முறையில் தயார் செய்யப்பட்டுள்ளது (DEMO).'
+          : 'Demo Mode: Sample application checklist and pre-fill sheet generated.'
       );
     } catch (err: any) {
-      alert(`Automation error: ${err.message}`);
+      alert(`Demo workflow error: ${err.message}`);
     } finally {
       setScanningDoc(null);
     }
@@ -383,9 +381,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem' }}>
                       <span style={{ color: progress >= 25 ? '#0f3460' : '#94a3b8' }}>1. ஆவணங்கள் (Documents)</span>
-                      <span style={{ color: progress >= 65 ? '#0f3460' : '#94a3b8' }}>2. AI OCR சரிபார்ப்பு (AI OCR)</span>
-                      <span style={{ color: progress >= 85 ? '#0f3460' : '#94a3b8' }}>3. விண்ணப்பம் (Review)</span>
-                      <span style={{ color: progress === 100 ? '#059669' : '#94a3b8' }}>4. சான்றிதழ் (Certificate)</span>
+                      <span style={{ color: progress >= 65 ? '#0f3460' : '#94a3b8' }}>2. ஆய்வு (Review)</span>
+                      <span style={{ color: progress >= 85 ? '#0f3460' : '#94a3b8' }}>3. சரிபார்ப்பு (Verified)</span>
+                      <span style={{ color: progress === 100 ? '#059669' : '#94a3b8' }}>4. விவரத் தாள் (Pre-fill Sheet)</span>
                     </div>
 
                     {/* Progress Bar */}
@@ -405,7 +403,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   {/* Required Documents Interactive Grid */}
                   <div style={{ marginBottom: '1.5rem' }}>
                     <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f3460', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      {language === 'ta' ? 'தேவையான ஆவணங்கள் & AI சரிபார்ப்பு (Required Documents & OCR)' : 'Required Documents & AI Verification'}
+                      {language === 'ta' ? 'தேவையான ஆவணங்கள் சரிபார்ப்பு (Document Checklist)' : 'Required Documents & Checklist'}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.75rem' }}>
@@ -432,7 +430,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 {language === 'ta' ? doc.nameTa : doc.nameEn}
                               </div>
                               <div style={{ fontSize: '0.75rem', color: isUploaded ? '#059669' : '#64748b', marginTop: '0.15rem' }}>
-                                {isUploaded ? '✅ AI OCR Verified (99.8%)' : 'ஆவணம் தேவை (Mandatory)'}
+                                {isUploaded
+                                  ? (language === 'ta' ? 'மாதிரி பதிவேற்றம் (DEMO)' : 'DEMO: Verified for preview')
+                                  : (language === 'ta' ? 'ஆவணம் தேவை (Mandatory)' : 'Document Required (Mandatory)')}
                               </div>
                             </div>
 
@@ -444,7 +444,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 onClick={() => handleSimulateUpload(t.id, doc.code)}
                                 style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem', whiteSpace: 'nowrap' }}
                               >
-                                {isScanning ? 'ஸ்கேன் ஆகிறது...' : 'Upload / Scan'}
+                                {isScanning ? 'சரிபார்க்கிறது...' : 'Demo Upload'}
                               </button>
                             )}
                           </div>
@@ -460,23 +460,23 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     </div>
                     <div style={{ fontSize: '0.92rem', color: '#1e293b', fontWeight: 600 }}>
                       {isCompleted
-                        ? (language === 'ta' ? 'உங்கள் அதிகாரப்பூர்வ சான்றிதழ் வெற்றிகரமாக வழங்கப்பட்டுள்ளது. கீழே பதிவிறக்கம் செய்து கொள்ளலாம்.' : 'Your official certificate has been successfully generated and issued. Click below to view and download.')
+                        ? (language === 'ta' ? 'விண்ணப்ப முன்-நிரப்பு விவரத் தாள் தயார். அதிகாரப்பூர்வ அரசு போர்ட்டலில் விண்ணப்பிக்க கீழே உள்ள பொத்தானைப் பயன்படுத்தவும்.' : 'Your application pre-fill checklist is ready. Use the pre-fill sheet below when applying on the official portal.')
                         : (language === 'ta' ? t.next_action_ta : t.next_action_en)}
                     </div>
                   </div>
 
                   {/* Bottom Action Controls */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    {/* Fast Track Automation Button (One-Click instant demo) */}
+                    {/* Demo Pre-fill Fast Track Button */}
                     {!isCompleted ? (
                       <button
                         type="button"
                         onClick={() => handleAutoFastTrack(t)}
                         disabled={scanningDoc !== null}
                         style={{
-                          background: 'linear-gradient(135deg, #0f3460 0%, #1e3a8a 100%)',
-                          color: '#ffffff',
-                          border: 'none',
+                          background: '#f1f5f9',
+                          color: '#0f3460',
+                          border: '1px solid #cbd5e1',
                           padding: '0.55rem 1.1rem',
                           borderRadius: '6px',
                           fontSize: '0.85rem',
@@ -485,20 +485,19 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          boxShadow: '0 2px 8px rgba(15, 52, 96, 0.25)',
                         }}
                       >
-                        <Sparkles size={16} color="#ffb74d" />
+                        <Sparkles size={16} color="#d97706" />
                         <span>
                           {scanningDoc
-                            ? (language === 'ta' ? 'AI சான்றளிக்கிறது...' : 'AI Processing...')
-                            : (language === 'ta' ? '⚡ தானியங்கி சான்றிதழ் வழங்கல் (Auto-Generate Certificate)' : '⚡ 1-Click Fast Track & Issue Certificate')}
+                            ? (language === 'ta' ? 'தயாராகிறது...' : 'Processing...')
+                            : (language === 'ta' ? 'மாதிரி விவரத் தாளை நிரப்புக (Demo)' : 'DEMO: Fill Sample Checklist')}
                         </span>
                       </button>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#059669', fontWeight: 700, fontSize: '0.88rem' }}>
                         <ShieldCheck size={18} />
-                        <span>{language === 'ta' ? 'சான்றிதழ் சரிபார்க்கப்பட்டு வழங்கப்பட்டது' : 'Verified & Stored in e-Vault'}</span>
+                        <span>{language === 'ta' ? 'விவரத் தாள் தயார் (Ready for Submission)' : 'Pre-fill Sheet Ready'}</span>
                       </div>
                     )}
 
@@ -536,29 +535,28 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           onClick={() => handleUpdateStatus(t.id, 'COMPLETED')}
                         >
                           <CheckCircle2 size={15} />
-                          <span>{language === 'ta' ? 'விண்ணப்பித்து சான்றிதழ் பெறுக (Submit & Issue)' : 'Record Official Submission & Issue'}</span>
+                          <span>{language === 'ta' ? 'அதிகாரப்பூர்வ சமர்ப்பிப்பை உறுதிசெய்' : 'Record Portal Submission'}</span>
                         </button>
                       )}
 
-                      {/* Always show View Certificate button if COMPLETED or provide instant preview */}
+                      {/* View Application Pre-fill & Checklist Sheet */}
                       {isCompleted ? (
                         <button
                           type="button"
                           className="btn btn-primary"
                           onClick={() => setActiveCertTask(t)}
                           style={{
-                            background: '#059669',
+                            background: '#0f3460',
                             fontSize: '0.88rem',
-                            fontWeight: 800,
+                            fontWeight: 700,
                             padding: '0.55rem 1.25rem',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '8px',
-                            boxShadow: '0 4px 10px rgba(5, 150, 105, 0.25)',
                           }}
                         >
-                          <Award size={16} />
-                          <span>{language === 'ta' ? '📜 அரசு சான்றிதழைப் பார்க்க (View Certificate)' : '📜 View Official Certificate'}</span>
+                          <FileText size={16} />
+                          <span>{language === 'ta' ? 'விண்ணப்ப விவரத் தாள் (Pre-fill Sheet)' : 'View Pre-fill Sheet'}</span>
                         </button>
                       ) : (
                         <button
@@ -567,8 +565,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           onClick={() => setActiveCertTask(t)}
                           style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                         >
-                          <Eye size={14} />
-                          <span>{language === 'ta' ? 'முன்னோட்டம் (Preview)' : 'Preview Certificate'}</span>
+                          <FileText size={14} />
+                          <span>{language === 'ta' ? 'விவரத் தாள் (Pre-fill Sheet)' : 'Pre-fill Sheet'}</span>
                         </button>
                       )}
                     </div>
@@ -630,7 +628,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         <OfficialCertificateModal
           task={activeCertTask}
           user={user}
-          language={language}
+          language={(language === 'en' ? 'en' : 'ta')}
           onClose={() => setActiveCertTask(null)}
         />
       )}

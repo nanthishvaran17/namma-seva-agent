@@ -17,8 +17,9 @@ Namma Seva Agent is an extensible, AI-orchestrated civic assistance platform des
                       +---------------------------------------+
                       |         FastAPI Gateway (/api/v1)     |
                       |  - Auth & RBAC (Citizen & Admin)      |
-                      |  - Rate Limiting & Input Validation   |
-                      |  - Consent & Privacy Interceptor      |
+                      |  - Input Validation                   |
+                      |  - [Planned: Token Bucket Rate Limit] |
+                      |  - [Planned: Privacy Interceptor]     |
                       +-------------------+-------------------+
                                           |
         +---------------------------------+---------------------------------+
@@ -27,9 +28,9 @@ Namma Seva Agent is an extensible, AI-orchestrated civic assistance platform des
 +------------------+            +-------------------+             +-------------------+
 |  Agent AI Engine |            | Dependency Graph  |             | Document Pipeline |
 | - Intent Router  |            | & Planner         |             | - File Upload     |
-| - Tool Dispatcher|            | - DAG Resolution  |             | - OCR Engine      |
-| - LLM Adapter    |            | - Cycle Detection |             | - Field Extractor |
-|   (Gemini/Mock)  |            | - Topological Sort|             | - Doc Matcher     |
+| - Tool Dispatcher|            | - DAG Resolution  |             | - [Demo Mock OCR] |
+| - Provider Layer |            | - Cycle Detection |             | - Field Extractor |
+|   (Mock Provider)|            | - Topological Sort|             | - Doc Matcher     |
 +--------+---------+            +---------+---------+             +---------+---------+
          |                                |                                 |
          +--------------------------------+---------------------------------+
@@ -47,8 +48,8 @@ Namma Seva Agent is an extensible, AI-orchestrated civic assistance platform des
                       |           Persistence Layer           |
                       |  - SQLAlchemy 2.0 Async               |
                       |  - SQLite (Local Dev) / PostgreSQL    |
-                      |  - Encrypted Document Vault           |
-                      +---------------------------------------+
+                      |  - [Planned: AES-256 Vault at rest]   |
+                      +-------------------+-------------------+
 ```
 
 ---

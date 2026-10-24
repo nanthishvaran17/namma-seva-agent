@@ -136,8 +136,9 @@
       "retrieval_date": "2026-10-22"
     }
   ],
-  "last_verified": "2026-10-22",
-  "verification_status": "VERIFIED",
+  "last_verified": null,
+  "verified_by": "PENDING_OFFICIAL_VERIFICATION",
+  "verification_status": "NEEDS_VERIFICATION",
   "version": "1.0.0",
-  "review_notes": "Verified against Tamil Nadu e-Sevai service code REV-101. Lifetime validity confirmed."
+  "review_notes": "Awaiting official verification by system administrator against Tamil Nadu e-Sevai REV-101."
 }

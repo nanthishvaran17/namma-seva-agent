@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, ExternalLink, ShieldCheck, AlertTriangle, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { ApiClient } from '../services/api';
 import type { ChatMessage } from '../types';
+import { FormattedText } from './FormattedText';
 
 interface AssistantChatProps {
   language: string;
@@ -121,7 +122,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
 
             <div style={{ maxWidth: '100%' }}>
               <div className={`msg-bubble ${m.sender === 'USER' ? 'user' : 'agent'}`}>
-                <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                <FormattedText content={m.content} />
 
                 {/* Structured Action Cards */}
                 {m.action_cards && m.action_cards.length > 0 && (
