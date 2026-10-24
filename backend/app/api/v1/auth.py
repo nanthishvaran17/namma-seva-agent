@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from backend.app.db.session import get_db
+from backend.app.core.config import settings
 from backend.app.core.security import get_password_hash, verify_password, create_access_token
 from backend.app.models.user import User, UserConsent
 from backend.app.models.audit import AuditLogModel
@@ -181,11 +182,59 @@ async def delete_citizen_data(
     current_user: User = Depends(require_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Permanently deletes user account, tasks, documents, reminders, and history."""
+    """
+    Permanently erases all citizen data in compliance with the DPDP Act 2023:
+    1. Physically deletes all encrypted document files and user upload directories from disk.
+    2. Purges all user database records across documents, tasks, task events, reminders,
+       conversations, messages, consents, audit logs, and user credentials.
+    """
+    import os
+    import shutil
     user_id = current_user.id
+    
+    # 1. Physically delete all uploaded files and user directory from disk
+    docs_res = await db.execute(select(UserDocumentModel).where(UserDocumentModel.user_id == user_id))
+    user_docs = docs_res.scalars().all()
+    for doc in user_docs:
+        if doc.storage_path and os.path.exists(doc.storage_path):
+            try:
+                os.remove(doc.storage_path)
+            except OSError:
+                pass
+                
+    user_upload_dir = os.path.join(settings.UPLOAD_DIR, user_id)
+    if os.path.exists(user_upload_dir):
+        shutil.rmtree(user_upload_dir, ignore_errors=True)
+
+    # 2. Delete conversations and messages
+    conv_res = await db.execute(select(ConversationModel.id).where(ConversationModel.user_id == user_id))
+    conv_ids = [r[0] for r in conv_res.all()]
+    if conv_ids:
+        from backend.app.models.conversation import MessageModel
+        await db.execute(delete(MessageModel).where(MessageModel.conversation_id.in_(conv_ids)))
+        await db.execute(delete(ConversationModel).where(ConversationModel.id.in_(conv_ids)))
+
+    # 3. Delete task events and tasks
+    tasks_res = await db.execute(select(UserTaskModel.id).where(UserTaskModel.user_id == user_id))
+    task_ids = [r[0] for r in tasks_res.all()]
+    if task_ids:
+        from backend.app.models.task import TaskEventModel
+        await db.execute(delete(TaskEventModel).where(TaskEventModel.task_id.in_(task_ids)))
+        await db.execute(delete(UserTaskModel).where(UserTaskModel.id.in_(task_ids)))
+
+    # 4. Delete documents, reminders, consents, audit logs
+    await db.execute(delete(UserDocumentModel).where(UserDocumentModel.user_id == user_id))
+    await db.execute(delete(ReminderModel).where(ReminderModel.user_id == user_id))
+    await db.execute(delete(UserConsent).where(UserConsent.user_id == user_id))
+    await db.execute(delete(AuditLogModel).where(AuditLogModel.user_id == user_id))
+    
+    # 5. Delete user account
     await db.execute(delete(User).where(User.id == user_id))
     await db.commit()
+
     return {
         "status": "DELETED",
-        "message": "All personal data, application tasks, and document metadata have been permanently erased."
+        "user_id": user_id,
+        "files_purged": len(user_docs),
+        "message": "All personal data, application tasks, and document metadata have been permanently erased from disk and database."
     }

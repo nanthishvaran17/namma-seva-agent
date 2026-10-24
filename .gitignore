@@ -28,6 +28,7 @@ ENV/
 *.db
 *.sqlite3
 storage/uploads/
+backend/storage/uploads/
 storage/namma_seva.db
 backend/namma_seva.db
 backend/namma_seva_test.db

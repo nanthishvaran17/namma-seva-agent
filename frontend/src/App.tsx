@@ -36,7 +36,16 @@ export const App: React.FC = () => {
 
   const handleHeroSearch = (query: string) => {
     setPendingChatQuery(query);
-    setActiveTab('chat');
+    if (activeTab === 'home') {
+      setTimeout(() => {
+        const chatEl = document.getElementById('home-live-chat-section');
+        if (chatEl) {
+          chatEl.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      setActiveTab('chat');
+    }
   };
 
   const handleSelectCategory = (catId: string) => {
@@ -77,21 +86,45 @@ export const App: React.FC = () => {
 
       <main className="main-content">
         {activeTab === 'home' && (
-          <>
+          <div className="home-one-screen-container">
             <HeroSearch
               language={language}
               onSearch={handleHeroSearch}
-              onSelectStoryService={(svcId) => {
-                handleHeroSearch(`Tell me requirements, checklist, and eligibility for ${svcId}`);
-              }}
             />
             <CategoryExplorer
               language={language}
               onSelectCategory={handleSelectCategory}
               onStartService={(svcId) => handleStartTask(svcId)}
+              onAskServiceAI={(query) => handleHeroSearch(query)}
             />
-            <TrustPrivacySection language={language} />
-          </>
+
+            {/* Direct Live AI Chat on Home Screen */}
+            <div id="home-live-chat-section" className="home-chat-wrapper">
+              <div className="home-chat-header-banner">
+                <div className="chat-badge-dot" />
+                <h3 className="home-chat-title">
+                  {language === 'ta' ? '🤖 உங்கள் AI வழிகாட்டி — நேரடி உரையாடல்' : '🤖 Live AI Civic Assistant'}
+                </h3>
+                <span className="home-chat-tag">
+                  {language === 'ta' ? 'உடனடி தமிழ் விளக்கம்' : 'Instant Verified Guidance'}
+                </span>
+              </div>
+              <AssistantChat
+                language={language}
+                initialQuery={pendingChatQuery}
+                onStartServiceTask={handleStartTask}
+              />
+            </div>
+
+            {/* Single Line Verified Source & Trust Ribbon */}
+            <div className="home-trust-ribbon">
+              <span>🏛️ தமிழ்நாடு அரசு அதிகாரப்பூர்வ வழிகாட்டி (tnesevai.tn.gov.in)</span>
+              <span>•</span>
+              <span>📞 முதலமைச்சர் உதவி எண்: 1100</span>
+              <span>•</span>
+              <span>🔒 DPDP சட்டம் 2023 படி பாதுகாப்பானது</span>
+            </div>
+          </div>
         )}
 
         {activeTab === 'chat' && (

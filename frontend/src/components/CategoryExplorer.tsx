@@ -9,6 +9,7 @@ interface CategoryExplorerProps {
   language: string;
   onSelectCategory: (catId: string) => void;
   onStartService?: (serviceId: string) => void;
+  onAskServiceAI?: (query: string) => void;
 }
 
 interface QuickService {
@@ -35,6 +36,7 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
   language,
   onSelectCategory,
   onStartService,
+  onAskServiceAI,
 }) => {
   const [selectedService, setSelectedService] = useState<QuickService | null>(null);
 
@@ -493,6 +495,22 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
             <div className="phonepe-modal-actions">
               <button
                 type="button"
+                className="phonepe-primary-btn"
+                style={{ background: '#0f172a' }}
+                onClick={() => {
+                  const query = `${selectedService.title_ta} பெற என்ன ஆவணங்கள், தகுதிகள் மற்றும் கட்டணம் தேவை?`;
+                  setSelectedService(null);
+                  if (onAskServiceAI) {
+                    onAskServiceAI(query);
+                  }
+                }}
+              >
+                <Sparkles size={17} color="#ffb74d" />
+                <span>{language === 'ta' ? 'AI-யிடம் கேட்க' : 'Ask AI'}</span>
+              </button>
+
+              <button
+                type="button"
                 className="phonepe-share-btn"
                 onClick={() => {
                   const text = encodeURIComponent(
@@ -502,8 +520,8 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
                 }}
                 title={language === 'ta' ? 'ஆவணப் பட்டியலை WhatsApp-ல் பகிர்க' : 'Share checklist to WhatsApp'}
               >
-                <Share2 size={18} color="#25D366" />
-                <span>{language === 'ta' ? 'WhatsApp-ல் பகிர்க' : 'Share'}</span>
+                <Share2 size={17} color="#25D366" />
+                <span>WhatsApp</span>
               </button>
 
               <button
@@ -517,8 +535,8 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
                   }
                 }}
               >
-                <span>{language === 'ta' ? 'விண்ணப்பிக்க வழிகாட்டி தொடங்குக' : 'Start Application Guide'}</span>
-                <ArrowRight size={18} />
+                <span>{language === 'ta' ? 'விண்ணப்பிக்க வழிகாட்டி' : 'Apply Guide'}</span>
+                <ArrowRight size={17} />
               </button>
             </div>
           </div>

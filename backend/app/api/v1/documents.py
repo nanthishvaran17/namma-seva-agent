@@ -46,8 +46,12 @@ async def upload_document(
     os.makedirs(user_storage_dir, exist_ok=True)
     stored_path = os.path.join(user_storage_dir, safe_name)
 
+    # Encrypt document at rest using AES-256-GCM with fresh nonce
+    from backend.app.core.crypto import encrypt_document_bytes, decrypt_document_bytes
+    encrypted_payload = encrypt_document_bytes(content)
+
     with open(stored_path, "wb") as f:
-        f.write(content)
+        f.write(encrypted_payload)
 
     # OCR extraction
     extracted = await document_processor.process_document(
@@ -131,3 +135,33 @@ async def delete_document(
     await db.delete(doc)
     await db.commit()
     return {"status": "DELETED", "document_id": document_id}
+
+@router.get("/{document_id}/download")
+async def download_user_document(
+    document_id: str,
+    current_user: User = Depends(require_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Decrypts and streams user document content."""
+    res = await db.execute(
+        select(UserDocumentModel)
+        .where(UserDocumentModel.id == document_id, UserDocumentModel.user_id == current_user.id)
+    )
+    doc = res.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    if not os.path.exists(doc.storage_path):
+        raise HTTPException(status_code=404, detail="Document file missing from storage.")
+
+    with open(doc.storage_path, "rb") as f:
+        encrypted_bytes = f.read()
+
+    from backend.app.core.crypto import decrypt_document_bytes
+    from fastapi import Response
+    decrypted_bytes = decrypt_document_bytes(encrypted_bytes)
+    return Response(
+        content=decrypted_bytes,
+        media_type=doc.mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{doc.original_filename}"'}
+    )

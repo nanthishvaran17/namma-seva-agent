@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ArrowRight, ShieldCheck, Mic, MicOff, Camera, Sparkles } from 'lucide-react';
-import { InstagramStories } from './InstagramStories';
+import { Search, ArrowRight, Mic, MicOff, Sparkles } from 'lucide-react';
 
 interface HeroSearchProps {
   language: string;
@@ -8,10 +7,9 @@ interface HeroSearchProps {
   onSelectStoryService?: (serviceId: string) => void;
 }
 
-export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch, onSelectStoryService }) => {
+export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch }) => {
   const [inputVal, setInputVal] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [showScanNotice, setShowScanNotice] = useState(false);
 
   const handleStartVoice = () => {
     if (isListening) {
@@ -73,45 +71,31 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch, onSe
 
   return (
     <section className="phonepe-hero-wrapper">
-      {/* 1. Quick Reels / Visual Guides at Top */}
-      <div className="phonepe-stories-container">
-        <InstagramStories
-          language={language}
-          onSelectStoryService={(svcId) => {
-            if (onSelectStoryService) {
-              onSelectStoryService(svcId);
-            } else {
-              onSearch(`Tell me requirements, checklist, and eligibility for ${svcId}`);
-            }
-          }}
-        />
-      </div>
-
-      {/* 2. Main PhonePe / Google Pay Style Friendly Banner */}
+      {/* Friendly Welcome Card */}
       <div className="phonepe-hero-card">
         <div className="phonepe-welcome-tag">
-          <ShieldCheck size={16} color="#0071e3" />
-          <span>{language === 'ta' ? 'தமிழ்நாடு அரசின் அதிகாரப்பூர்வ AI வழிகாட்டி' : 'Tamil Nadu Government AI Civic Assistant'}</span>
+          <Sparkles size={16} color="#0071e3" />
+          <span>{language === 'ta' ? 'அரசு இ-சேவை AI நேரடி வழிகாட்டி' : 'TN Government AI Civic Guide'}</span>
         </div>
 
         <h1 className="phonepe-hero-title">
           {language === 'ta' ? (
             <>
-              அரசு சேவைகளை எளிதாகப் பெற <br />
-              <span className="phonepe-gradient-text">உங்கள் சொந்த மொழியில் கேளுங்கள்!</span>
+              வணக்கம்! இன்று உங்களுக்கு <br />
+              <span className="phonepe-gradient-text">என்ன சான்றிதழ் உதவி வேண்டும்?</span>
             </>
           ) : (
             <>
-              Tamil Nadu Civic Services, <br />
-              <span className="phonepe-gradient-text">Simple as Google Pay.</span>
+              Hello! Which civic service <br />
+              <span className="phonepe-gradient-text">can we assist you with today?</span>
             </>
           )}
         </h1>
 
         <p className="phonepe-hero-subtitle">
           {language === 'ta'
-            ? 'சாதி, வருமானம், இருப்பிடம், முதல் பட்டதாரி சான்றிதழ்கள் மற்றும் கல்வி உதவித்தொகைகளுக்கு என்ன ஆவணங்கள் தேவை என்பதை நொடிகளில் அறியலாம்.'
-            : 'Check eligibility, auto-generate official document checklists, and complete applications with 1-click ease.'}
+            ? 'சாதி, வருமானம், ரேஷன், முதல் பட்டதாரி — தேவையான ஆவணங்கள் மற்றும் வழிகாட்டுதலை நொடிகளில் அறியலாம்.'
+            : 'Check eligibility, 3 mandatory documents, fee & step-by-step guidance in seconds.'}
         </p>
 
         {/* Big Touch-Friendly Search & Speak Bar */}
@@ -123,11 +107,11 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch, onSe
             placeholder={
               isListening
                 ? language === 'ta'
-                  ? '🎙️ பேசுங்கள்... உங்கள் குரலைக் கேட்கிறது...'
-                  : '🎙️ Listening... Please speak your question...'
+                  ? '🎙️ கேட்கிறது... தமிழில் பேசலாம்...'
+                  : '🎙️ Listening... Please speak now...'
                 : language === 'ta'
-                ? 'உங்களுக்கு என்ன சான்றிதழ் தேவை? (எ.கா: சாதி சான்றிதழ்)'
-                : 'What civic service do you need? (e.g. Income certificate, First graduate)'
+                ? 'உங்களுக்கு என்ன உதவி வேண்டும்? (எ.கா: சாதிச் சான்றிதழ்)'
+                : 'Ask anything (e.g., Community certificate requirements)'
             }
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
@@ -141,21 +125,12 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch, onSe
               onClick={handleStartVoice}
               title={language === 'ta' ? 'பேசித் தேடவும்' : 'Speak to search'}
             >
-              {isListening ? <MicOff size={20} color="#ff3b30" /> : <Mic size={20} color="#0071e3" />}
+              {isListening ? <MicOff size={18} color="#ff3b30" /> : <Mic size={18} color="#0071e3" />}
               <span className="mic-btn-text">{language === 'ta' ? 'பேசுங்கள்' : 'Speak'}</span>
             </button>
 
-            <button
-              type="button"
-              className="phonepe-scan-btn"
-              onClick={() => setShowScanNotice(true)}
-              title={language === 'ta' ? 'ஆவண ஸ்கேனர்' : 'Scan documents'}
-            >
-              <Camera size={18} color="#86868b" />
-            </button>
-
             <button type="submit" className="phonepe-search-btn">
-              <span>{language === 'ta' ? 'தேடுக' : 'Search'}</span>
+              <span>{language === 'ta' ? 'கேளுங்கள்' : 'Ask AI'}</span>
               <ArrowRight size={16} />
             </button>
           </div>
@@ -172,7 +147,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch, onSe
         {/* Popular Quick Filter Pills */}
         <div className="phonepe-pills-row">
           <span className="phonepe-pills-label">
-            {language === 'ta' ? 'அடிக்கடி கேட்கப்படும் கேள்விகள்:' : 'Quick shortcuts:'}
+            {language === 'ta' ? 'விரைவு தேர்வுகள்:' : 'Quick shortcuts:'}
           </span>
           <div className="phonepe-pills-scroll">
             {quickFilterPills.map((p, i) => (
@@ -188,42 +163,6 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch, onSe
           </div>
         </div>
       </div>
-
-      {/* Scanner Notice Modal */}
-      {showScanNotice && (
-        <div className="phonepe-modal-backdrop" onClick={() => setShowScanNotice(false)}>
-          <div className="phonepe-modal-sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', textAlign: 'center' }}>
-            <div className="phonepe-scan-icon-circle">
-              <Camera size={32} color="#0071e3" />
-            </div>
-            <h3 className="phonepe-modal-heading" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-              {language === 'ta' ? 'ஆவண சரிபார்ப்பு ஸ்கேனர்' : 'Document Scanner & OCR'}
-            </h3>
-            <p className="phonepe-modal-desc" style={{ marginBottom: '1.5rem' }}>
-              {language === 'ta'
-                ? 'உங்கள் ஆதார் அட்டை, ரேஷன் அட்டை அல்லது பள்ளி மாற்றுச் சான்றிதழைப் பதிவேற்றி, பெயர் மற்றும் விவரங்கள் அரசு பதிவேடுகளுடன் சரியாக உள்ளதா என AI மூலம் நொடிகளில் சரிபார்க்கலாம்.'
-                : 'Upload your Aadhaar or Ration Card to automatically verify spelling and certificate prerequisites with zero errors.'}
-            </p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <button
-                className="phonepe-primary-btn"
-                onClick={() => {
-                  setShowScanNotice(false);
-                  onSearch('Verify my documents checklist and spelling consistency');
-                }}
-              >
-                {language === 'ta' ? 'சரிபார்க்கத் தொடங்கு' : 'Start Verification'}
-              </button>
-              <button
-                className="phonepe-share-btn"
-                onClick={() => setShowScanNotice(false)}
-              >
-                {language === 'ta' ? 'மூடுக' : 'Close'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };
