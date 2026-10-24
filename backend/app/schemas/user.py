@@ -9,7 +9,14 @@ class UserBase(BaseModel):
     preferred_language: str = "ta"
 
 class UserCreate(UserBase):
+    model_config = ConfigDict(extra="forbid")
     password: str
+
+class UserProfileUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    preferred_language: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr

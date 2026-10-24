@@ -11,7 +11,7 @@ from backend.app.models.task import UserTaskModel
 from backend.app.models.document import UserDocumentModel
 from backend.app.models.reminder import ReminderModel
 from backend.app.models.conversation import ConversationModel
-from backend.app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, ConsentCreate, ConsentResponse
+from backend.app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, ConsentCreate, ConsentResponse, UserProfileUpdate
 from backend.app.api.deps import require_current_user
 from backend.app.core.rate_limit import RateLimiter, get_client_ip
 
@@ -34,7 +34,8 @@ async def register_citizen(user_in: UserCreate, request: Request, db: AsyncSessi
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         phone_number=user_in.phone_number,
-        preferred_language=user_in.preferred_language
+        preferred_language=user_in.preferred_language,
+        role="CITIZEN"  # Role escalation prevention: public registration is always CITIZEN
     )
     db.add(new_user)
     await db.flush()
@@ -99,6 +100,28 @@ async def login_citizen(login_data: UserLogin, request: Request, db: AsyncSessio
 
 @router.get("/me", response_model=UserResponse)
 async def get_my_profile(current_user: User = Depends(require_current_user)):
+    return UserResponse.model_validate(current_user)
+
+@router.patch("/me", response_model=UserResponse)
+async def update_my_profile(
+    update_in: UserProfileUpdate,
+    current_user: User = Depends(require_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Updates allowed citizen profile attributes (full_name, phone_number, preferred_language).
+    Role escalation prevention: role, email, and is_active cannot be modified here.
+    """
+    if update_in.full_name is not None:
+        current_user.full_name = update_in.full_name
+    if update_in.phone_number is not None:
+        current_user.phone_number = update_in.phone_number
+    if update_in.preferred_language is not None:
+        current_user.preferred_language = update_in.preferred_language
+
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
     return UserResponse.model_validate(current_user)
 
 @router.post("/consents", response_model=ConsentResponse)
