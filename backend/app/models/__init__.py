@@ -6,6 +6,7 @@ from backend.app.models.document import UserDocumentModel
 from backend.app.models.reminder import ReminderModel
 from backend.app.models.audit import AuditLogModel
 from backend.app.models.conversation import ConversationModel, MessageModel
+from backend.app.models.webhook import WebhookDeduplicationModel
 
 __all__ = [
     "Base",
@@ -19,5 +20,6 @@ __all__ = [
     "ReminderModel",
     "AuditLogModel",
     "ConversationModel",
-    "MessageModel"
+    "MessageModel",
+    "WebhookDeduplicationModel"
 ]

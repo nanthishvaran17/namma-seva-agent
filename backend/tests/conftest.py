@@ -19,3 +19,15 @@ if test_db_path.exists():
         test_db_path.unlink()
     except Exception:
         pass
+
+from backend.app.db.session import engine, Base, AsyncSessionLocal
+from backend.app.playbooks.seeder import sync_playbooks_to_db
+import backend.app.models  # Register all models with Base
+
+@pytest.fixture(autouse=True)
+async def init_test_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    async with AsyncSessionLocal() as session:
+        await sync_playbooks_to_db(session)
+    yield
