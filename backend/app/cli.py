@@ -61,10 +61,20 @@ def main():
     admin_parser.add_argument("--password", required=True, help="Administrator password")
     admin_parser.add_argument("--full-name", default="System Administrator", help="Administrator display name")
 
+    export_parser = subparsers.add_parser("export-playbooks", help="Export playbooks from DB ground truth to disk JSON files")
+
     args = parser.parse_args()
     if args.command == "create-admin":
         code = asyncio.run(create_admin(args.email, args.password, args.full_name))
         sys.exit(code)
+    elif args.command == "export-playbooks":
+        from backend.app.playbooks.seeder import export_db_playbooks_to_disk
+        async def run_export():
+            async with AsyncSessionLocal() as session:
+                return await export_db_playbooks_to_disk(session)
+        count = asyncio.run(run_export())
+        print(f"Successfully exported {count} playbooks from DB to disk.")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()

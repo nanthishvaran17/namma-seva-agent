@@ -97,14 +97,17 @@ async def update_playbook_verification_status(
         )
         db.add(db_model)
 
-    # 3. Persist to JSON file on disk
-    playbook_file = Path(settings.PLAYBOOKS_DIR) / f"{service_id}.json"
-    if playbook_file.exists():
-        try:
-            with open(playbook_file, "w", encoding="utf-8") as f:
-                json.dump(service, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to persist playbook to disk: {e}")
+    # 3. Persist to JSON file on disk ONLY in development environments.
+    # In production/test environments, DB is the sole source of truth; disk writes are never in request path.
+    env_clean = (settings.ENVIRONMENT or "production").strip().lower()
+    if env_clean in {"development", "dev", "local"}:
+        playbook_file = Path(settings.PLAYBOOKS_DIR) / f"{service_id}.json"
+        if playbook_file.exists():
+            try:
+                with open(playbook_file, "w", encoding="utf-8") as f:
+                    json.dump(service, f, indent=2, ensure_ascii=False)
+            except Exception as e:
+                pass
 
     # 4. Audit Log with who, when, old_status, new_status
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -134,6 +137,33 @@ async def update_playbook_verification_status(
         "verified_by": new_verified_by,
         "last_verified": new_last_verified,
         "message": f"Service status successfully updated to {new_status} by {admin_user.email}"
+    }
+
+@router.get("/playbooks/divergence")
+async def check_playbook_divergence_endpoint(
+    admin_user: User = Depends(require_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Detects differences between DB ground truth and disk JSON files."""
+    from backend.app.playbooks.seeder import detect_playbook_divergence
+    divergences = await detect_playbook_divergence(db)
+    return {
+        "divergences_count": len(divergences),
+        "divergences": divergences
+    }
+
+@router.post("/playbooks/export")
+async def export_playbooks_endpoint(
+    admin_user: User = Depends(require_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Explicitly exports all playbooks from the DB ground truth to disk JSON files."""
+    from backend.app.playbooks.seeder import export_db_playbooks_to_disk
+    exported_count = await export_db_playbooks_to_disk(db)
+    return {
+        "status": "SUCCESS",
+        "exported_count": exported_count,
+        "message": f"Exported {exported_count} verified playbooks from DB to disk"
     }
 
 @router.get("/metrics")
