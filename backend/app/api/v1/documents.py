@@ -24,24 +24,30 @@ async def upload_document(
     current_user: User = Depends(require_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Validate MIME type
-    if file.content_type not in settings.ALLOWED_MIME_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported format '{file.content_type}'. Allowed: PDF, JPEG, PNG, WebP."
-        )
-
     # Read and validate size
     content = await file.read()
     if len(content) > settings.MAX_UPLOAD_SIZE_BYTES:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"File exceeds maximum allowed size of {settings.MAX_UPLOAD_SIZE_BYTES // (1024*1024)}MB."
         )
 
+    # Validate magic bytes, extension matching, declared MIME, and sanitize filename
+    from backend.app.core.file_validation import validate_uploaded_file
+    try:
+        detected_type, canonical_ext, safe_orig_name = validate_uploaded_file(
+            content=content,
+            raw_filename=file.filename or "upload.bin",
+            declared_mime=file.content_type or "application/octet-stream"
+        )
+    except ValueError as val_err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(val_err)
+        )
+
     # Save to disk in isolated directory with random UUID
-    file_ext = os.path.splitext(file.filename or "")[1].lower() or ".bin"
-    safe_name = f"{uuid.uuid4().hex}{file_ext}"
+    safe_name = f"{uuid.uuid4().hex}{canonical_ext}"
     user_storage_dir = os.path.join(settings.UPLOAD_DIR, current_user.id)
     os.makedirs(user_storage_dir, exist_ok=True)
     stored_path = os.path.join(user_storage_dir, safe_name)
@@ -58,14 +64,14 @@ async def upload_document(
         file_path=stored_path,
         mime_type=file.content_type,
         doc_code=doc_code,
-        original_filename=file.filename or "upload"
+        original_filename=safe_orig_name
     )
 
     doc_model = UserDocumentModel(
         user_id=current_user.id,
         task_id=task_id,
         doc_code=doc_code,
-        original_filename=file.filename or "uploaded_document",
+        original_filename=safe_orig_name,
         storage_path=stored_path,
         mime_type=file.content_type,
         file_size_bytes=len(content),

@@ -30,14 +30,23 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
 
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(false);
+  const chatBodyRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatBodyRef.current) {
+      chatBodyRef.current.scrollTo({
+        top: chatBodyRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll within chat container after user sends a message or when loading
+    if (messages.length > 1 || loading) {
+      scrollToBottom();
+    }
   }, [messages, loading]);
 
   useEffect(() => {
