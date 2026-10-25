@@ -41,7 +41,9 @@
       "name_ta": "விண்ணப்பதாரரின் புகைப்படம்",
       "description": "Passport photo under 50KB",
       "mandatory": true,
-      "acceptable_formats": ["image/jpeg"]
+      "acceptable_formats": [
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "address_proof",
@@ -49,7 +51,10 @@
       "name_ta": "ஸ்மார்ட் குடும்ப அட்டை (Ration Card)",
       "description": "Ration Card containing names of all family members",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "family_education_proofs",
@@ -57,7 +62,10 @@
       "name_ta": "பெற்றோர் மற்றும் உடன் பிறந்தோரின் கல்விச் சான்றிதழ்கள் / மாற்றுச் சான்றிதழ்",
       "description": "TCs showing highest qualification of parents and siblings (or non-graduation declaration)",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "joint_declaration",
@@ -65,7 +73,9 @@
       "name_ta": "விண்ணப்பதாரர் மற்றும் பெற்றோர் கையொப்பமிட்ட கூட்டு உறுதிமொழிப் படிவம்",
       "description": "Official joint declaration prescribed by Tamil Nadu Government declaring no graduate in family",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf"]
+      "acceptable_formats": [
+        "application/pdf"
+      ]
     }
   ],
   "optional_documents": [
@@ -115,29 +125,23 @@
       "instruction_ta": "₹60 கட்டணம் செலுத்தி, வட்டாட்சியர் ஒப்புதலுக்குப் பின் சான்றிதழைப் பதிவிறக்கவும்."
     }
   ],
-  "dependencies": ["nativity_certificate"],
+  "dependencies": [
+    "nativity_certificate"
+  ],
   "outputs": {
     "certificate_type": "Digitally Signed First Graduate Certificate",
     "digitally_signed": true,
     "validity_period": "Permanent for graduation tenure"
   },
-  "official_sources": [
-    {
-      "title": "Directorate of Technical Education (DOTE) First Graduate Concession Guidelines",
-      "publisher": "Higher Education Department, Government of Tamil Nadu",
-      "url": "https://www.dote.tn.gov.in/",
-      "retrieval_date": "2026-10-22"
-    },
-    {
-      "title": "e-Sevai Service Portal (REV-104)",
-      "publisher": "Tamil Nadu e-Governance Agency",
-      "url": "https://www.tnesevai.tn.gov.in/",
-      "retrieval_date": "2026-10-22"
-    }
-  ],
   "last_verified": null,
   "verified_by": "PENDING_OFFICIAL_VERIFICATION",
   "verification_status": "NEEDS_VERIFICATION",
   "version": "1.0.0",
-  "review_notes": "Awaiting official verification by system administrator against DOTE and REV-104 guidelines."
+  "review_notes": null,
+  "official_sources": [
+    {
+      "title": "Tamil Nadu e-Sevai Portal",
+      "url": "https://www.tnesevai.tn.gov.in/"
+    }
+  ]
 }

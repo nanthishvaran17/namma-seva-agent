@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = ""  # Must be set via env/secret manager
     DOC_ENCRYPTION_KEY: str = ""  # Separate AES-256 key for sensitive documents at rest
+    FIELD_ENCRYPTION_KEY: str = ""  # Separate AES-256 key for field-level encryption (PII)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
@@ -92,6 +93,8 @@ class Settings(BaseSettings):
                 self.SECRET_KEY = "dev-insecure-key-never-use-in-production-min32chars"
             if not self.DOC_ENCRYPTION_KEY:
                 self.DOC_ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            if not self.FIELD_ENCRYPTION_KEY:
+                self.FIELD_ENCRYPTION_KEY = "field-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
             if not self.WHATSAPP_VERIFY_TOKEN:
                 self.WHATSAPP_VERIFY_TOKEN = "dev_verify_token_local"
             if not self.WHATSAPP_APP_SECRET:
@@ -109,6 +112,23 @@ class Settings(BaseSettings):
                 "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
                 "but DOC_ENCRYPTION_KEY is missing, insecure, or under 32 characters. "
                 "Document encryption requires a dedicated 256-bit key distinct from SECRET_KEY. Startup aborted."
+            )
+        if not self.FIELD_ENCRYPTION_KEY or len(self.FIELD_ENCRYPTION_KEY) < 32:
+            raise ValueError(
+                "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
+                "but FIELD_ENCRYPTION_KEY is missing, insecure, or under 32 characters. "
+                "Field-level encryption requires a dedicated 256-bit key distinct from SECRET_KEY and DOC_ENCRYPTION_KEY. Startup aborted."
+            )
+        # Strict key separation checks
+        if self.DOC_ENCRYPTION_KEY == self.SECRET_KEY:
+            raise ValueError(
+                "CRITICAL SECURITY CONFIGURATION ERROR: Key separation violation. "
+                "DOC_ENCRYPTION_KEY cannot equal SECRET_KEY. Startup aborted."
+            )
+        if self.FIELD_ENCRYPTION_KEY == self.SECRET_KEY or self.FIELD_ENCRYPTION_KEY == self.DOC_ENCRYPTION_KEY:
+            raise ValueError(
+                "CRITICAL SECURITY CONFIGURATION ERROR: Key separation violation. "
+                "FIELD_ENCRYPTION_KEY must be strictly distinct from SECRET_KEY and DOC_ENCRYPTION_KEY. Startup aborted."
             )
         if not self.WHATSAPP_APP_SECRET or len(self.WHATSAPP_APP_SECRET) < 16:
             raise ValueError(

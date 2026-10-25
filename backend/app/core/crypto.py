@@ -1,64 +1,126 @@
 import os
+import re
+import json
 import base64
+import hmac
 import hashlib
-from typing import Optional
+import logging
+from typing import Optional, Dict, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from sqlalchemy.types import TypeDecorator, Text
 from backend.app.core.config import settings
 
-# 5-byte file header to identify encrypted files and prevent double-encryption
-ENCRYPTED_FILE_MAGIC = b"NSEV1"
+logger = logging.getLogger(__name__)
+
+# 5-byte file header prefix to identify encrypted files and prevent double-encryption
+ENCRYPTED_FILE_MAGIC = b"NSEV1"  # Default v1 magic header for backwards compatibility
+FILE_MAGIC_PREFIX = b"NSEV"
 NONCE_SIZE_BYTES = 12
 
-def _derive_aes_key() -> bytes:
-    """
-    Derives a deterministic 256-bit (32-byte) binary key from settings.DOC_ENCRYPTION_KEY.
-    Uses SHA-256 to ensure exactly 32 bytes regardless of whether string is raw passphrase, hex, or base64.
-    """
-    key_str = settings.DOC_ENCRYPTION_KEY
-    if not key_str:
-        # Fallback for testing/dev
-        key_str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+# In-memory keyring registries for graceful zero-downtime key rotation
+_DOC_KEY_RING: Dict[str, bytes] = {}
+_FIELD_KEY_RING: Dict[str, bytes] = {}
+
+def register_doc_encryption_key(version: str, key_str: str) -> None:
+    """Registers an older or rotated document encryption key in the keyring."""
+    v_clean = version.replace("v", "")
+    _DOC_KEY_RING[v_clean] = hashlib.sha256(key_str.encode("utf-8")).digest()
+
+def register_field_encryption_key(version: str, key_str: str) -> None:
+    """Registers an older or rotated field encryption key in the keyring."""
+    v_clean = version.replace("v", "")
+    _FIELD_KEY_RING[v_clean] = hashlib.sha256(key_str.encode("utf-8")).digest()
+
+def clear_keyrings() -> None:
+    """Clears all dynamically registered rotation keys (useful for test isolation)."""
+    _DOC_KEY_RING.clear()
+    _FIELD_KEY_RING.clear()
+
+def _derive_doc_key() -> bytes:
+    """Derives a deterministic 256-bit (32-byte) binary key from settings.DOC_ENCRYPTION_KEY."""
+    key_str = settings.DOC_ENCRYPTION_KEY or "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     return hashlib.sha256(key_str.encode("utf-8")).digest()
 
-def encrypt_document_bytes(plaintext: bytes, associated_data: Optional[bytes] = None) -> bytes:
+def _derive_field_key() -> bytes:
+    """Derives a deterministic 256-bit (32-byte) binary key from settings.FIELD_ENCRYPTION_KEY."""
+    key_str = settings.FIELD_ENCRYPTION_KEY or "field-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
+    return hashlib.sha256(key_str.encode("utf-8")).digest()
+
+def get_doc_key(version: str = "1") -> bytes:
+    """Retrieves document key by version tag ('1', '2', etc.), consulting keyring for rotation."""
+    v_clean = version.replace("v", "")
+    if v_clean in _DOC_KEY_RING:
+        return _DOC_KEY_RING[v_clean]
+    if v_clean == "1":
+        return _derive_doc_key()
+    raise ValueError(f"Unknown document encryption key version '{version}' - no key found in keyring for rotation")
+
+def get_field_key(version: str = "1") -> bytes:
+    """Retrieves field key by version tag ('1', '2', etc.), consulting keyring for rotation."""
+    v_clean = version.replace("v", "")
+    if v_clean in _FIELD_KEY_RING:
+        return _FIELD_KEY_RING[v_clean]
+    if v_clean == "1":
+        return _derive_field_key()
+    raise ValueError(f"Unknown field encryption key version '{version}' - no key found in keyring for rotation")
+
+# ---------------------------------------------------------------------------
+# File-Level Encryption (AES-256-GCM + AAD Binding + Key Rotation Header)
+# ---------------------------------------------------------------------------
+
+def encrypt_document_bytes(
+    plaintext: bytes,
+    associated_data: Optional[bytes] = None,
+    key_version: str = "1"
+) -> bytes:
     """
     Encrypts arbitrary document bytes using AES-256-GCM with a fresh random 12-byte nonce per file.
-    Output binary format: [5-byte magic 'NSEV1'] + [12-byte nonce] + [ciphertext + 16-byte auth tag].
+    Binds Authenticated Additional Data (AAD) e.g. f"{user_id}:{document_id}".
+    Output binary format: [4-byte 'NSEV' + 1-byte version] + [12-byte nonce] + [ciphertext + 16-byte auth tag].
     """
     if not plaintext:
         return b""
 
-    key = _derive_aes_key()
+    v_clean = key_version.replace("v", "")
+    key = get_doc_key(v_clean)
     aesgcm = AESGCM(key)
     nonce = os.urandom(NONCE_SIZE_BYTES)
     
     ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
-    return ENCRYPTED_FILE_MAGIC + nonce + ciphertext
+    header = FILE_MAGIC_PREFIX + v_clean[:1].encode("ascii")
+    return header + nonce + ciphertext
 
-def decrypt_document_bytes(payload: bytes, associated_data: Optional[bytes] = None) -> bytes:
+def decrypt_document_bytes(
+    payload: bytes,
+    associated_data: Optional[bytes] = None
+) -> bytes:
     """
     Decrypts document bytes previously encrypted with encrypt_document_bytes.
-    Verifies authentication tag and magic header.
-    If the payload is not encrypted (e.g. legacy plain file), returns original payload.
+    Extracts key version from header and supports older keys during rotation.
+    Verifies authentication tag and bound associated data (AAD).
+    If payload is not encrypted (e.g. legacy plain file), returns original payload.
     """
     if not payload:
         return b""
 
-    if not payload.startswith(ENCRYPTED_FILE_MAGIC):
+    if not is_payload_encrypted(payload):
         # Unencrypted legacy file fallback
         return payload
 
-    prefix_len = len(ENCRYPTED_FILE_MAGIC)
+    # Header is 5 bytes: b"NSEV" + 1-byte version
+    version_char = chr(payload[4])
+    key = get_doc_key(version_char)
+    
+    prefix_len = len(FILE_MAGIC_PREFIX) + 1
     nonce = payload[prefix_len : prefix_len + NONCE_SIZE_BYTES]
     ciphertext = payload[prefix_len + NONCE_SIZE_BYTES :]
 
-    key = _derive_aes_key()
     aesgcm = AESGCM(key)
     return aesgcm.decrypt(nonce, ciphertext, associated_data)
 
 def is_payload_encrypted(payload: bytes) -> bool:
-    """Checks whether binary data begins with the Namma Seva encryption magic header."""
-    return payload.startswith(ENCRYPTED_FILE_MAGIC)
+    """Checks whether binary data begins with the Namma Seva encryption magic header prefix."""
+    return bool(payload and payload.startswith(FILE_MAGIC_PREFIX) and len(payload) >= (len(FILE_MAGIC_PREFIX) + 1 + NONCE_SIZE_BYTES + 16))
 
 def encrypt_string(plaintext: str) -> str:
     """Encrypts a string and returns a URL-safe Base64 encoded string."""
@@ -78,3 +140,119 @@ def decrypt_string(ciphertext_b64: str) -> str:
     except Exception:
         # If unencrypted legacy string
         return ciphertext_b64
+
+# ---------------------------------------------------------------------------
+# Field-Level Encryption (AES-256-GCM + Blind Index)
+# ---------------------------------------------------------------------------
+
+def encrypt_field(plaintext: str, key_version: str = "1") -> str:
+    """
+    Encrypts a field string using AES-256-GCM with a fresh random nonce.
+    Format: FLE:<version>:<urlsafe_base64(nonce + ciphertext + tag)>
+    """
+    if plaintext is None:
+        return None
+    if not plaintext:
+        return ""
+
+    v_clean = key_version.replace("v", "")
+    key = get_field_key(v_clean)
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(NONCE_SIZE_BYTES)
+    ciphertext = aesgcm.encrypt(nonce, str(plaintext).encode("utf-8"), None)
+    encoded = base64.urlsafe_b64encode(nonce + ciphertext).decode("ascii")
+    return f"FLE:{v_clean}:{encoded}"
+
+def decrypt_field(ciphertext_str: str) -> str:
+    """
+    Decrypts an FLE encrypted field string.
+    If the string does not have the 'FLE:' prefix, returns it as-is for backwards compatibility.
+    """
+    if ciphertext_str is None:
+        return None
+    if not isinstance(ciphertext_str, str) or not ciphertext_str.startswith("FLE:"):
+        return ciphertext_str
+
+    parts = ciphertext_str.split(":", 2)
+    if len(parts) != 3:
+        return ciphertext_str
+
+    version_tag = parts[1]
+    b64_payload = parts[2]
+    try:
+        raw = base64.urlsafe_b64decode(b64_payload.encode("ascii"))
+        nonce = raw[:NONCE_SIZE_BYTES]
+        ciphertext = raw[NONCE_SIZE_BYTES:]
+        key = get_field_key(version_tag)
+        aesgcm = AESGCM(key)
+        decrypted = aesgcm.decrypt(nonce, ciphertext, None)
+        return decrypted.decode("utf-8")
+    except Exception as e:
+        logger.error("Failed to decrypt field with version %s: %s", version_tag, e)
+        raise
+
+def compute_phone_blind_index(phone: Optional[str], key_version: str = "1") -> Optional[str]:
+    """
+    Generates a deterministic HMAC-SHA256 blind index for exact phone lookups.
+    Normalizes input by stripping formatting and canonicalizing to 91XXXXXXXXXX.
+    Database queries can search on phone_blind_index without storing plaintext phone numbers.
+    """
+    if not phone:
+        return None
+    clean = re.sub(r"\D", "", str(phone).strip())
+    if not clean:
+        return None
+    # Canonicalize Indian 10-digit mobile number with 91 prefix
+    if len(clean) == 10:
+        clean = "91" + clean
+
+    v_clean = key_version.replace("v", "")
+    key = get_field_key(v_clean)
+    return hmac.new(key, f"phone_blind_index:{clean}".encode("utf-8"), hashlib.sha256).hexdigest()
+
+# ---------------------------------------------------------------------------
+# SQLAlchemy Custom TypeDecorators for Seamless Model Encryption
+# ---------------------------------------------------------------------------
+
+class EncryptedString(TypeDecorator):
+    """
+    SQLAlchemy TypeDecorator that encrypts strings with AES-256-GCM before writing to DB,
+    and decrypts them transparently on load.
+    """
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return encrypt_field(str(value))
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return decrypt_field(value)
+
+class EncryptedJSON(TypeDecorator):
+    """
+    SQLAlchemy TypeDecorator that serializes dictionaries/lists to JSON, encrypts with AES-256-GCM,
+    and deserializes on load.
+    """
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        serialized = json.dumps(value)
+        return encrypt_field(serialized)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        plain_str = decrypt_field(value)
+        if not plain_str:
+            return {}
+        try:
+            return json.loads(plain_str)
+        except Exception:
+            return {}

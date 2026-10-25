@@ -25,7 +25,10 @@
       "name_ta": "விண்ணப்பதாரரின் புகைப்படம்",
       "description": "Recent passport size photo",
       "mandatory": true,
-      "acceptable_formats": ["image/jpeg", "image/png"]
+      "acceptable_formats": [
+        "image/jpeg",
+        "image/png"
+      ]
     },
     {
       "doc_code": "address_proof",
@@ -33,7 +36,10 @@
       "name_ta": "குடும்ப அட்டை / ஸ்மார்ட் கார்டு / ஆதார்",
       "description": "Valid family ration card or residence proof",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "income_proof",
@@ -41,7 +47,10 @@
       "name_ta": "சம்பளச் சான்றிதழ் / படிவம் 16 / VAO வருமான அறிக்கை",
       "description": "Salary slip for employed parents or VAO inquiry for agriculture/unorganized workers",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "self_declaration",
@@ -49,7 +58,9 @@
       "name_ta": "சுய உறுதிமொழிப் படிவம்",
       "description": "Declaration of annual household income",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf"]
+      "acceptable_formats": [
+        "application/pdf"
+      ]
     }
   ],
   "optional_documents": [],
@@ -99,17 +110,15 @@
     "digitally_signed": true,
     "validity_period": "6 Months from date of issue"
   },
-  "official_sources": [
-    {
-      "title": "Tamil Nadu e-Sevai Citizen Portal (REV-102)",
-      "publisher": "Tamil Nadu e-Governance Agency",
-      "url": "https://www.tnesevai.tn.gov.in/",
-      "retrieval_date": "2026-10-22"
-    }
-  ],
   "last_verified": null,
   "verified_by": "PENDING_OFFICIAL_VERIFICATION",
   "verification_status": "NEEDS_VERIFICATION",
   "version": "1.0.0",
-  "review_notes": "Awaiting official verification by system administrator against REV-102 guidelines."
+  "review_notes": null,
+  "official_sources": [
+    {
+      "title": "Tamil Nadu e-Sevai Portal",
+      "url": "https://www.tnesevai.tn.gov.in/"
+    }
+  ]
 }

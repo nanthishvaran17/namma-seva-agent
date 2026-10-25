@@ -53,14 +53,16 @@ async def upload_document(
         )
 
     # Save to disk in isolated directory with random UUID
-    safe_name = f"{uuid.uuid4().hex}{canonical_ext}"
+    doc_id = str(uuid.uuid4())
+    safe_name = f"{doc_id}{canonical_ext}"
     user_storage_dir = os.path.join(settings.UPLOAD_DIR, current_user.id)
     os.makedirs(user_storage_dir, exist_ok=True)
     stored_path = os.path.join(user_storage_dir, safe_name)
 
-    # Encrypt document at rest using AES-256-GCM with fresh nonce
+    # Encrypt document at rest using AES-256-GCM with fresh nonce and AAD binding
     from backend.app.core.crypto import encrypt_document_bytes, decrypt_document_bytes
-    encrypted_payload = encrypt_document_bytes(content)
+    aad = f"{current_user.id}:{doc_id}".encode("utf-8")
+    encrypted_payload = encrypt_document_bytes(content, associated_data=aad)
 
     with open(stored_path, "wb") as f:
         f.write(encrypted_payload)
@@ -74,6 +76,7 @@ async def upload_document(
     )
 
     doc_model = UserDocumentModel(
+        id=doc_id,
         user_id=current_user.id,
         task_id=task_id,
         doc_code=doc_code,
@@ -171,7 +174,16 @@ async def download_user_document(
 
     from backend.app.core.crypto import decrypt_document_bytes
     from fastapi import Response
-    decrypted_bytes = decrypt_document_bytes(encrypted_bytes)
+    aad = f"{current_user.id}:{doc.id}".encode("utf-8")
+    try:
+        decrypted_bytes = decrypt_document_bytes(encrypted_bytes, associated_data=aad)
+    except Exception as e:
+        logger.error("Document integrity check or decryption failed for doc_id=%s: %s", doc.id, e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document cryptographic integrity verification failed."
+        )
+
     return Response(
         content=decrypted_bytes,
         media_type=doc.mime_type,

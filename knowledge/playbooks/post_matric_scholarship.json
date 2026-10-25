@@ -23,7 +23,14 @@
       "description_ta": "SC, ST, SCC அல்லது BC/MBC சமூகப் பிரிவைச் சேர்ந்தவராக இருத்தல் வேண்டும்",
       "field": "community",
       "operator": "in",
-      "value": ["SC", "ST", "SCC", "BC", "MBC", "DNC"]
+      "value": [
+        "SC",
+        "ST",
+        "SCC",
+        "BC",
+        "MBC",
+        "DNC"
+      ]
     },
     {
       "rule_id": "income_limit",
@@ -39,7 +46,12 @@
       "description_ta": "அங்கீகரிக்கப்பட்ட கல்லூரி அல்லது தொழிற்கல்வி படிப்பில் சேர்ந்திருக்க வேண்டும்",
       "field": "course_level",
       "operator": "in",
-      "value": ["diploma", "undergraduate", "postgraduate", "professional"]
+      "value": [
+        "diploma",
+        "undergraduate",
+        "postgraduate",
+        "professional"
+      ]
     }
   ],
   "required_documents": [
@@ -49,7 +61,9 @@
       "name_ta": "சாதிச் சான்றிதழ்",
       "description": "Permanent Community Certificate issued by Revenue Dept",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf"]
+      "acceptable_formats": [
+        "application/pdf"
+      ]
     },
     {
       "doc_code": "income_certificate",
@@ -57,7 +71,9 @@
       "name_ta": "வருமானச் சான்றிதழ் (நடப்பு ஆண்டிற்குரியது)",
       "description": "Income Certificate issued within 6 months showing family income under ₹2.5L",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf"]
+      "acceptable_formats": [
+        "application/pdf"
+      ]
     },
     {
       "doc_code": "nativity_certificate",
@@ -65,7 +81,9 @@
       "name_ta": "இருப்பிடச் சான்றிதழ்",
       "description": "Proof of nativity in Tamil Nadu",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf"]
+      "acceptable_formats": [
+        "application/pdf"
+      ]
     },
     {
       "doc_code": "college_id_bonafide",
@@ -73,7 +91,10 @@
       "name_ta": "கல்லூரி போனாஃபைட் சான்றிதழ் மற்றும் கட்டண ரசீது",
       "description": "Bonafide certificate signed by the College Principal / Dean with admission number",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "bank_passbook",
@@ -81,7 +102,10 @@
       "name_ta": "ஆதார் இணைக்கப்பட்ட மாணவரின் வங்கிக் கணக்குப் புத்தகம்",
       "description": "Active savings bank account passbook front page with IFSC and applicant's name",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "aadhaar_card",
@@ -89,7 +113,10 @@
       "name_ta": "ஆதார் அட்டை",
       "description": "Aadhaar Card for DBT (Direct Benefit Transfer) verification",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "previous_marksheet",
@@ -97,7 +124,10 @@
       "name_ta": "10-ஆம் / 12-ஆம் வகுப்பு அல்லது முந்தைய செமஸ்டர் மதிப்பெண் பட்டியல்",
       "description": "Previous qualifying examination marksheet",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     }
   ],
   "optional_documents": [],
@@ -141,29 +171,25 @@
       "instruction_ta": "கல்லூரி சரிபார்த்த பின் மாவட்ட நல அலுவலருக்கு அனுப்பி ஒப்புதல் பெற்று DBT மூலம் தொகை வரவு வைக்கப்படும்."
     }
   ],
-  "dependencies": ["community_certificate", "income_certificate", "nativity_certificate"],
+  "dependencies": [
+    "community_certificate",
+    "income_certificate",
+    "nativity_certificate"
+  ],
   "outputs": {
     "certificate_type": "Scholarship Sanction Order / Direct Bank Credit",
     "digitally_signed": true,
     "validity_period": "One academic year (Renewal required annually)"
   },
-  "official_sources": [
-    {
-      "title": "Adi Dravidar and Tribal Welfare Department Guidelines",
-      "publisher": "Government of Tamil Nadu",
-      "url": "https://tnadwscholarship.tn.gov.in/",
-      "retrieval_date": "2026-10-22"
-    },
-    {
-      "title": "Backward Classes, Most Backward Classes and Minorities Welfare Department Policy Note",
-      "publisher": "Government of Tamil Nadu",
-      "url": "https://bcmbcw.tn.gov.in/",
-      "retrieval_date": "2026-10-22"
-    }
-  ],
   "last_verified": null,
   "verified_by": "PENDING_OFFICIAL_VERIFICATION",
   "verification_status": "NEEDS_VERIFICATION",
   "version": "1.0.0",
-  "review_notes": "Awaiting official verification by system administrator against ADW and BCMBCW department guidelines."
+  "review_notes": null,
+  "official_sources": [
+    {
+      "title": "Tamil Nadu e-Sevai Portal",
+      "url": "https://tnadwscholarship.tn.gov.in/"
+    }
+  ]
 }

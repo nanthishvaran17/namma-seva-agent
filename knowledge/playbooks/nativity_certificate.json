@@ -25,7 +25,9 @@
       "name_ta": "விண்ணப்பதாரரின் புகைப்படம்",
       "description": "Passport photo under 50KB",
       "mandatory": true,
-      "acceptable_formats": ["image/jpeg"]
+      "acceptable_formats": [
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "birth_certificate",
@@ -33,7 +35,10 @@
       "name_ta": "பிறப்புச் சான்றிதழ் / பள்ளி மாற்றுச் சான்றிதழ்",
       "description": "Birth certificate proving place of birth or School Study Certificate for past 5 consecutive years",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "parent_nativity_proof",
@@ -41,7 +46,10 @@
       "name_ta": "பெற்றோரின் இருப்பிடச் சான்று / சொத்து வரி ரசீது",
       "description": "Parent's school certificates or land/property deed in Tamil Nadu",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     },
     {
       "doc_code": "ration_card",
@@ -49,7 +57,10 @@
       "name_ta": "ஸ்மார்ட் ரேஷன் கார்டு / வாக்காளர் அடையாள அட்டை",
       "description": "Address proof",
       "mandatory": true,
-      "acceptable_formats": ["application/pdf", "image/jpeg"]
+      "acceptable_formats": [
+        "application/pdf",
+        "image/jpeg"
+      ]
     }
   ],
   "optional_documents": [],
@@ -92,17 +103,15 @@
     "digitally_signed": true,
     "validity_period": "Permanent"
   },
-  "official_sources": [
-    {
-      "title": "TNeGA e-Sevai Service Catalog (REV-103)",
-      "publisher": "Tamil Nadu e-Governance Agency",
-      "url": "https://www.tnesevai.tn.gov.in/",
-      "retrieval_date": "2026-10-22"
-    }
-  ],
   "last_verified": null,
   "verified_by": "PENDING_OFFICIAL_VERIFICATION",
   "verification_status": "NEEDS_VERIFICATION",
   "version": "1.0.0",
-  "review_notes": "Awaiting official verification by system administrator against REV-103 guidelines."
+  "review_notes": null,
+  "official_sources": [
+    {
+      "title": "Tamil Nadu e-Sevai Portal",
+      "url": "https://www.tnesevai.tn.gov.in/"
+    }
+  ]
 }

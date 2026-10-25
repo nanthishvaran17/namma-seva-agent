@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import String, DateTime, Text, JSON, ForeignKey, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.app.db.session import Base
+from backend.app.core.crypto import EncryptedJSON
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -19,11 +20,11 @@ class UserDocumentModel(Base):
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     
-    # OCR & Intelligence
+    # OCR & Intelligence (Encrypted at rest with dedicated AES-256 key)
     ocr_status: Mapped[str] = mapped_column(String(50), default="PENDING", nullable=False) # PENDING, PROCESSED, FAILED
-    extracted_fields: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    extracted_fields: Mapped[dict] = mapped_column(EncryptedJSON, default=dict, nullable=False)
     is_verified_by_user: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    user_corrections: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    user_corrections: Mapped[dict] = mapped_column(EncryptedJSON, default=dict, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
