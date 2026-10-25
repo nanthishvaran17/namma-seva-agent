@@ -103,7 +103,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       a.href = url;
       a.download = `namma_seva_citizen_data_${user.id.slice(0, 8)}.json`;
       a.click();
-      setMessage(language === 'ta' ? 'உங்கள் தகவல்கள் DPDP சட்டப்படி வெற்றிகரமாக பதிவிறக்கம் செய்யப்பட்டன.' : 'Your personal data archive was exported successfully in compliance with DPDP Act 2023.');
+      setMessage(language === 'ta' ? 'உங்கள் தகவல்கள் வெற்றிகரமாக பதிவிறக்கம் செய்யப்பட்டன (சட்ட ஆலோசனைக்கு உட்பட்டது).' : 'Your personal data archive was exported successfully (pending legal review).');
     } catch (err: any) {
       setMessage(`Export failed: ${err.message}`);
     } finally {
@@ -112,7 +112,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   };
 
   const handleDeleteData = async () => {
-    if (window.confirm('Are you absolutely sure you want to permanently erase your account, all application tasks, and document metadata? This action is irreversible under the DPDP Act.')) {
+    if (window.confirm('Are you absolutely sure you want to permanently erase your account, all application tasks, and document metadata? This action is irreversible (pending legal review).')) {
       try {
         await ApiClient.deleteData();
         localStorage.removeItem('namma_seva_token');
@@ -581,12 +581,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       {/* Citizen Privacy & Data Sovereignty Box (DPDP Act 2023) */}
       <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '1rem', padding: '2rem', boxShadow: '0 4px 15px rgba(15, 52, 96, 0.05)' }}>
         <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f3460', marginBottom: '0.5rem' }}>
-          {language === 'ta' ? 'தனிநபர் தரவு பாதுகாப்பு & உரிமைகள் (DPDP Act 2023)' : 'Citizen Data Sovereignty & DPDP Rights'}
+          {language === 'ta' ? 'தனிநபர் தரவு பாதுகாப்பு & உரிமைகள் (சட்ட ஆலோசனைக்கு உட்பட்டது)' : 'Citizen Data Sovereignty & Rights (Pending Legal Review)'}
         </h3>
         <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1.5rem', lineHeight: '1.6' }}>
           {language === 'ta'
-            ? 'உங்கள் தரவு உங்கள் உரிமை. எந்த நேரத்திலும் உங்கள் பணிகள், ஆவணங்கள் மற்றும் தகவல்களை முழுமையாக பதிவிறக்கலாம் அல்லது கணக்கை நிரந்தரமாக அழிக்கலாம்.'
-            : 'You have full legal sovereignty over your records under India’s Digital Personal Data Protection Act. Export your complete audit profile or permanently delete all data at any moment.'}
+            ? 'உங்கள் தரவு உங்கள் உரிமை. எந்த நேரத்திலும் உங்கள் பணிகள், ஆவணங்கள் மற்றும் தகவல்களை முழுமையாக பதிவிறக்கலாம் அல்லது கணக்கை நிரந்தரமாக அழிக்கலாம் (சட்ட ஆலோசனைக்கு உட்பட்டது).'
+            : 'Export your complete audit profile or permanently delete all data at any moment (subject to pending legal review).'}
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>

@@ -52,18 +52,24 @@ In production multi-node clusters, in-memory rate limiting must be upgraded to:
 
 ## 4. Cryptographic Architecture: Key Separation, File & Field Encryption
 
-### Strict Three-Key Separation (Fail-Closed Startup):
+### Target Database Environments:
+- **Production Target:** **PostgreSQL 15+ with asyncpg** (`postgresql+asyncpg://...`), fully compatible with Alembic async migrations.
+- **Development & Automated CI Target:** **SQLite 3.37+ with aiosqlite** (`sqlite+aiosqlite://...`), with enforced `PRAGMA foreign_keys=ON`.
+
+### Strict Five-Way Key Separation (Fail-Closed Startup):
 In production (`ENVIRONMENT=production` or `staging`), startup aborts immediately if any key is missing, insecure, or shared across purposes:
 1. `SECRET_KEY`: Used exclusively for JWT access token cryptographic signing (HS256).
 2. `DOC_ENCRYPTION_KEY`: Used exclusively for AES-256-GCM encryption of physical files at rest.
-3. `FIELD_ENCRYPTION_KEY`: Used exclusively for field-level encryption of citizen PII and blind indexing.
+3. `FIELD_ENCRYPTION_KEY`: Used exclusively for field-level encryption (FLE) of citizen PII (name, phone, OCR fields).
+4. `BLIND_INDEX_KEY`: Used exclusively for deterministic HMAC-SHA256 phone blind indexing.
+5. `DELETION_PEPPER`: Dedicated high-entropy secret used exclusively for peppered HMAC-SHA256 deletion receipts.
 
 ```
-+--------------------------------------------------------------------------------+
-| Key Separation Invariant:                                                      |
-| SECRET_KEY != DOC_ENCRYPTION_KEY != FIELD_ENCRYPTION_KEY                       |
-| All keys must be >= 32 characters (256-bit entropy) in production.             |
-+--------------------------------------------------------------------------------+
++-------------------------------------------------------------------------------------------------------+
+| Five-Way Key Separation Invariant:                                                                    |
+| SECRET_KEY != DOC_ENCRYPTION_KEY != FIELD_ENCRYPTION_KEY != BLIND_INDEX_KEY != DELETION_PEPPER       |
+| All keys must be strictly distinct and >= 32 characters (256-bit entropy) in production.              |
++-------------------------------------------------------------------------------------------------------+
 ```
 
 ### File-Level Encryption at Rest (AES-256-GCM + AAD Binding):
@@ -73,31 +79,41 @@ In production (`ENVIRONMENT=production` or `staging`), startup aborts immediatel
 - **Key Versioning & Zero-Downtime Rotation:**
   - Files are tagged with version headers (`b"NSEV1"`, `b"NSEV2"`).
   - The runtime maintains a versioned keyring (`_DOC_KEY_RING`). When decrypting, the engine extracts the version byte, selects the appropriate key, and verifies the authentication tag without requiring instantaneous batch re-encryption.
+  - New writes dynamically adopt the primary key version indicated by `CURRENT_DOC_KEY_VERSION`.
 
 ### Field-Level Encryption (FLE) & Blind Index:
 - **Sensitive Citizen Fields:** `User.full_name`, `User.phone_number`, and `UserDocumentModel.extracted_fields` are transparently encrypted before database storage via SQLAlchemy `TypeDecorator` (`EncryptedString` and `EncryptedJSON`).
 - **Encrypted Field Format:** `FLE:<version>:<urlsafe_base64(nonce + ciphertext + tag)>`
 - **HMAC-SHA256 Blind Index (`phone_blind_index`):**
   - Storing encrypted phone numbers prevents SQL equality searches (`SELECT * FROM users WHERE phone_number = ?`).
-  - To preserve fast, deterministic citizen lookups (e.g. from WhatsApp incoming messages) without exposing plaintext phone numbers, the system computes a one-way HMAC-SHA256 blind index over the canonicalized telephone number (`91XXXXXXXXXX`).
-  - Database queries search exclusively on `phone_blind_index = ?`. Even with raw SQL access, an attacker cannot recover citizen phone numbers from the index without breaking HMAC-SHA256.
+  - To preserve fast, deterministic citizen lookups (e.g. from WhatsApp incoming messages) without exposing plaintext phone numbers, the system computes a one-way HMAC-SHA256 blind index over canonicalized phone numbers (`91XXXXXXXXXX`) using dedicated `BLIND_INDEX_KEY`.
+  - Database queries search exclusively on `phone_blind_index = ?`.
+- **Blind Index Reindexing on Key Rotation:**
+  - When rotating `BLIND_INDEX_KEY`, an operator runs the reindex CLI command:
+    ```bash
+    python -m backend.app.cli reindex-blind-index --key-version 2
+    ```
+  - This decodes user phone numbers in-memory via FLE and updates `phone_blind_index` to the new HMAC digest version without downtime.
 
 ---
 
-## 5. Citizen Data Deletion (DPDP Act 2023) & Audit Preservation
+## 5. Citizen Data Deletion & Audit Hygiene (Pending Legal Review)
+
+> [!IMPORTANT]
+> **Legal Notice:** All references to data erasure, retention horizons, and compliance under India's Digital Personal Data Protection (DPDP) Act 2023 are subject to formal legal review with designated cyber-law / faculty counsel. Code implementations provide technical mechanisms (cryptographic deletion, receipt generation, PII scrub), but do not constitute legal advice.
 
 ### `/api/v1/auth/me/data` Deletion Workflow:
-When a citizen exercises their Right to Erasure under the Digital Personal Data Protection (DPDP) Act 2023, Section 12:
+When a citizen exercises their Right to Erasure:
 
-1. **Deletion Receipt Generation (Zero PII):**
+1. **Peppered Deletion Receipt Generation (Zero PII):**
    - A `DeletionReceiptModel` record is generated containing:
      - `id`: Unique receipt UUID
-     - `user_id_hash`: One-way SHA-256 digest of citizen ID (cannot be linked back without user record)
+     - `user_id_hash`: HMAC-SHA256 digest of citizen ID keyed with dedicated `DELETION_PEPPER` (cannot be brute-force guessed even if user IDs are sequential)
      - `deletion_timestamp`: UTC timestamp of purge execution
      - `request_channel`: Channel initiating deletion (`WEB`, `WHATSAPP`, etc.)
      - `consent_withdrawal_recorded`: Boolean flag confirming explicit consent revocation
-     - `consent_withdrawal_evidence`: Statutory record (`{"statutory_basis": "DPDP_ACT_2023_SECTION_12", "action": "CITIZEN_CONSENT_REVOCATION_AND_DATA_PURGE"}`)
-     - `receipt_signature`: Cryptographic HMAC receipt signature for verification
+     - `consent_withdrawal_evidence`: `{"legal_status": "PENDING_LEGAL_REVIEW", "action": "CITIZEN_CONSENT_REVOCATION_AND_DATA_PURGE"}`
+     - `receipt_signature`: Cryptographic HMAC-SHA256 receipt signature keyed with `DELETION_PEPPER`
 2. **Live Database Purge:** The system atomically purges all personal records linked to `user_id` across:
    - `users` (account credentials and profile)
    - `user_tasks` and `task_events` (application state)
@@ -106,18 +122,20 @@ When a citizen exercises their Right to Erasure under the Digital Personal Data 
    - `conversations` and `messages` (chat history)
    - `user_consents` (granted consents)
    - Citizen activity audit logs (`USER_LOGIN`, `DOCUMENT_UPLOAD`, etc.)
-3. **Preservation of Administrative Accountability Logs:**
-   - Administrative audit log entries (actions matching `PLAYBOOK_VERIFICATION_STATUS_CHANGE`, `ADMIN_USER_ROLE_CHANGE`, `ADMIN_OVERRIDE`) are **strictly preserved**.
-   - Citizen personal activity is erased, but official government actions taken by admins or reviewers remain immutable to prevent administrative accountability tampering.
+3. **Audit Hygiene on Preserved Administrative Accountability Logs:**
+   - Administrative audit log entries (actions matching `PLAYBOOK_VERIFICATION_STATUS_CHANGE`, `ADMIN_USER_ROLE_CHANGE`, `ADMIN_OVERRIDE`) are preserved for state accountability.
+   - However, **all citizen PII (name, phone, email, extracted fields) is recursively sanitized** from the `details` payload, replacing citizen identifiers with `"[REDACTED_PURGED_CITIZEN_PII]"`.
+   - A post-purge database scan verifies zero instances of the citizen's PII remain across all preserved audit tables.
 4. **Physical Disk Erasure:** All files stored in `storage/uploads/{user_id}/` and the directory itself are permanently deleted via secure recursive unlinking.
 
-### Open Legal-Review Questions:
+### Exact Legal-Review Questions for Faculty / Legal Counsel:
 1. **Statutory Retention vs. Right to Erasure:** Under DPDP Act 2023 Section 12, what is the required statutory retention window for the non-PII deletion receipt and consent withdrawal evidence to defend against post-deletion regulatory audits?
-2. **Cross-Departmental Appeals:** If an application was submitted to an external e-District portal before local data purge, does Tamil Nadu e-Governance Agency (TNeGA) require an immutable audit trail linking the receipt to state portal transaction IDs?
-3. **Disaster Recovery Rolling Snapshots:** Clarify legal disclosure guidelines regarding cold backup retention windows (14-30 days) before full snapshot rotation.
+2. **Consent Revocation Evidence Standard:** What specific metadata fields are required to constitute legally verifiable proof of consent withdrawal without retaining citizen PII?
+3. **Receipt Contents & Anonymization:** Is an HMAC-SHA256 user hash using a secret pepper legally sufficient anonymization under DPDP Act 2023, or does the receipt itself need additional anonymization?
+4. **Disaster Recovery Rolling Snapshots:** Clarify legal disclosure guidelines regarding cold backup retention windows (14-30 days) before full snapshot rotation and obligations around tombstone replay.
 
 ### Honest Retention & Trace Policies:
-- **Application Logs:** Citizen phone numbers are masked (`91********10`). Message bodies and raw OCR payloads are **never logged**.
+- **Application Logs:** Citizen phone numbers are masked (`+91 ******3456`). Message bodies, raw OCR payloads, and FLE fields are **never logged**. Tested and verified by automated test suites.
 - **LLM Traces:** In development and benchmark evaluations, responses are generated locally using the deterministic mock provider. No citizen personal data or application documents are sent to external third-party model APIs without explicit user consent.
 - **Cold Backups:** Offline database snapshots retain historical data for 14 to 30 days. On disaster recovery restoration, an automated post-restore tombstone replay script re-applies historical deletion receipts to ensure erased records are not resurrected.
 
