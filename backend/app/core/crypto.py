@@ -20,6 +20,7 @@ NONCE_SIZE_BYTES = 12
 # In-memory keyring registries for graceful zero-downtime key rotation
 _DOC_KEY_RING: Dict[str, bytes] = {}
 _FIELD_KEY_RING: Dict[str, bytes] = {}
+_BLIND_INDEX_KEY_RING: Dict[str, bytes] = {}
 
 def register_doc_encryption_key(version: str, key_str: str) -> None:
     """Registers an older or rotated document encryption key in the keyring."""
@@ -31,10 +32,16 @@ def register_field_encryption_key(version: str, key_str: str) -> None:
     v_clean = version.replace("v", "")
     _FIELD_KEY_RING[v_clean] = hashlib.sha256(key_str.encode("utf-8")).digest()
 
+def register_blind_index_key(version: str, key_str: str) -> None:
+    """Registers an older or rotated blind index key in the keyring."""
+    v_clean = version.replace("v", "")
+    _BLIND_INDEX_KEY_RING[v_clean] = hashlib.sha256(key_str.encode("utf-8")).digest()
+
 def clear_keyrings() -> None:
     """Clears all dynamically registered rotation keys (useful for test isolation)."""
     _DOC_KEY_RING.clear()
     _FIELD_KEY_RING.clear()
+    _BLIND_INDEX_KEY_RING.clear()
 
 def _derive_doc_key() -> bytes:
     """Derives a deterministic 256-bit (32-byte) binary key from settings.DOC_ENCRYPTION_KEY."""
@@ -63,6 +70,16 @@ def get_field_key(version: str = "1") -> bytes:
     if v_clean == "1":
         return _derive_field_key()
     raise ValueError(f"Unknown field encryption key version '{version}' - no key found in keyring for rotation")
+
+def get_blind_index_key(version: str = "1") -> bytes:
+    """Retrieves blind index key by version tag ('1', '2', etc.), consulting keyring for rotation."""
+    v_clean = version.replace("v", "")
+    if v_clean in _BLIND_INDEX_KEY_RING:
+        return _BLIND_INDEX_KEY_RING[v_clean]
+    if v_clean == "1":
+        key_str = settings.BLIND_INDEX_KEY or "blind-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
+        return hashlib.sha256(key_str.encode("utf-8")).digest()
+    raise ValueError(f"Unknown blind index key version '{version}' - no key found in keyring for rotation")
 
 # ---------------------------------------------------------------------------
 # File-Level Encryption (AES-256-GCM + AAD Binding + Key Rotation Header)
@@ -191,9 +208,13 @@ def decrypt_field(ciphertext_str: str) -> str:
         logger.error("Failed to decrypt field with version %s: %s", version_tag, e)
         raise
 
-def compute_phone_blind_index(phone: Optional[str], key_version: str = "1") -> Optional[str]:
+def compute_phone_blind_index(
+    phone: Optional[str],
+    key_version: str = "1",
+    key_override: Optional[bytes] = None
+) -> Optional[str]:
     """
-    Generates a deterministic HMAC-SHA256 blind index for exact phone lookups.
+    Generates a deterministic HMAC-SHA256 blind index for exact phone lookups using BLIND_INDEX_KEY.
     Normalizes input by stripping formatting and canonicalizing to 91XXXXXXXXXX.
     Database queries can search on phone_blind_index without storing plaintext phone numbers.
     """
@@ -207,8 +228,32 @@ def compute_phone_blind_index(phone: Optional[str], key_version: str = "1") -> O
         clean = "91" + clean
 
     v_clean = key_version.replace("v", "")
-    key = get_field_key(v_clean)
+    key = key_override if key_override is not None else get_blind_index_key(v_clean)
     return hmac.new(key, f"phone_blind_index:{clean}".encode("utf-8"), hashlib.sha256).hexdigest()
+
+def compute_deletion_user_hash(user_id: str, pepper_override: Optional[str] = None) -> str:
+    """
+    Computes an HMAC-SHA256 digest of user_id with settings.DELETION_PEPPER.
+    A plain SHA-256 allows brute-force recovery if user IDs are short or sequential.
+    The pepper makes unauthorized reversal or guessing infeasible without the pepper secret.
+    """
+    pepper = pepper_override or settings.DELETION_PEPPER or "pepper-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
+    return hmac.new(
+        key=pepper.encode("utf-8"),
+        msg=f"deletion_receipt:{user_id}".encode("utf-8"),
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+def compute_deletion_receipt_signature(
+    receipt_id: str,
+    user_id_hash: str,
+    timestamp_iso: str,
+    pepper_override: Optional[str] = None
+) -> str:
+    """Computes an HMAC-SHA256 signature validating the authenticity of a deletion receipt."""
+    pepper = pepper_override or settings.DELETION_PEPPER or "pepper-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
+    msg = f"{receipt_id}:{user_id_hash}:{timestamp_iso}".encode("utf-8")
+    return hmac.new(key=pepper.encode("utf-8"), msg=msg, digestmod=hashlib.sha256).hexdigest()
 
 # ---------------------------------------------------------------------------
 # SQLAlchemy Custom TypeDecorators for Seamless Model Encryption

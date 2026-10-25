@@ -114,6 +114,8 @@ def test_whatsapp_app_secret_fail_closed_in_production():
             SECRET_KEY="a-very-secure-random-production-key-at-least-32-chars-long",
             DOC_ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             FIELD_ENCRYPTION_KEY="fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+            BLIND_INDEX_KEY="11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff",
+            DELETION_PEPPER="ffeeddccbbaa00998877665544332211ffeeddccbbaa00998877665544332211",
             WHATSAPP_VERIFY_TOKEN="custom_prod_verify_token_12345",
             WHATSAPP_APP_SECRET="",
             DEMO_MODE=False

@@ -252,25 +252,31 @@ def test_key_separation_enforced_in_production():
     shared_key = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
     valid_key_2 = "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1"
     valid_key_3 = "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+    valid_key_4 = "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"
+    valid_key_5 = "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
 
     # Fails if FIELD_ENCRYPTION_KEY == SECRET_KEY
-    with pytest.raises(ValueError, match="FIELD_ENCRYPTION_KEY must be strictly distinct from SECRET_KEY"):
+    with pytest.raises(ValueError, match="Key separation violation"):
         Settings(
             ENVIRONMENT="production",
             SECRET_KEY=shared_key,
             DOC_ENCRYPTION_KEY=valid_key_2,
             FIELD_ENCRYPTION_KEY=shared_key,
+            BLIND_INDEX_KEY=valid_key_4,
+            DELETION_PEPPER=valid_key_5,
             WHATSAPP_APP_SECRET="min16charsappsecret!",
             WHATSAPP_VERIFY_TOKEN="custom_prod_token_123"
         )
 
     # Fails if FIELD_ENCRYPTION_KEY == DOC_ENCRYPTION_KEY
-    with pytest.raises(ValueError, match="FIELD_ENCRYPTION_KEY must be strictly distinct"):
+    with pytest.raises(ValueError, match="Key separation violation"):
         Settings(
             ENVIRONMENT="production",
             SECRET_KEY=valid_key_2,
             DOC_ENCRYPTION_KEY=shared_key,
             FIELD_ENCRYPTION_KEY=shared_key,
+            BLIND_INDEX_KEY=valid_key_4,
+            DELETION_PEPPER=valid_key_5,
             WHATSAPP_APP_SECRET="min16charsappsecret!",
             WHATSAPP_VERIFY_TOKEN="custom_prod_token_123"
         )
@@ -281,8 +287,11 @@ def test_key_separation_enforced_in_production():
         SECRET_KEY=shared_key,
         DOC_ENCRYPTION_KEY=valid_key_2,
         FIELD_ENCRYPTION_KEY=valid_key_3,
+        BLIND_INDEX_KEY=valid_key_4,
+        DELETION_PEPPER=valid_key_5,
         WHATSAPP_APP_SECRET="min16charsappsecret!",
         WHATSAPP_VERIFY_TOKEN="custom_prod_token_123"
     )
     assert s.FIELD_ENCRYPTION_KEY != s.SECRET_KEY
     assert s.FIELD_ENCRYPTION_KEY != s.DOC_ENCRYPTION_KEY
+    assert s.BLIND_INDEX_KEY != s.DELETION_PEPPER

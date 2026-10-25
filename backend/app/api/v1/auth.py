@@ -237,7 +237,8 @@ async def delete_citizen_data(
 
     user_id = current_user.id
     now = datetime.now(timezone.utc)
-    user_id_hash = hashlib.sha256(user_id.encode("utf-8")).hexdigest()
+    from backend.app.core.crypto import compute_deletion_user_hash, compute_deletion_receipt_signature
+    user_id_hash = compute_deletion_user_hash(user_id)
     request_channel = request.headers.get("X-Request-Channel", "WEB")
 
     # Capture consent withdrawal evidence before purge
@@ -245,20 +246,20 @@ async def delete_citizen_data(
     user_consents = consents_res.scalars().all()
     withdrawn_purposes = [c.consent_purpose for c in user_consents] or ["CITIZEN_SERVICE_ASSISTANCE"]
 
-    # Generate non-forgeable receipt signature using system secret
-    sig_payload = f"{user_id_hash}:{now.isoformat()}:{request_channel}"
-    receipt_sig = hmac.new(settings.SECRET_KEY.encode(), sig_payload.encode(), hashlib.sha256).hexdigest()
+    # Generate non-forgeable receipt signature using dedicated pepper
+    receipt_id = str(uuid.uuid4())
+    receipt_sig = compute_deletion_receipt_signature(receipt_id, user_id_hash, now.isoformat())
 
     # 1. Record minimal, non-PII deletion receipt and consent-withdrawal evidence
     receipt = DeletionReceiptModel(
-        id=str(uuid.uuid4()),
+        id=receipt_id,
         user_id_hash=user_id_hash,
         deleted_at=now,
         request_channel=request_channel,
         consent_withdrawal_recorded=True,
         consent_withdrawal_evidence={
             "withdrawn_purposes": withdrawn_purposes,
-            "statutory_basis": "DPDP_ACT_2023_SECTION_12",
+            "statutory_note": "CITIZEN_RIGHT_TO_ERASURE_PENDING_LEGAL_REVIEW",
             "withdrawal_timestamp": now.isoformat()
         },
         receipt_signature=receipt_sig
@@ -326,5 +327,5 @@ async def delete_citizen_data(
         "consent_withdrawal_recorded": True,
         "receipt_signature": receipt_sig,
         "files_purged": len(user_docs),
-        "message": "All personal records, files, and derived artifacts have been permanently erased under DPDP Act 2023."
+        "message": "All personal records, files, and derived artifacts have been permanently erased (statutory retention vs erasure pending legal review)."
     }

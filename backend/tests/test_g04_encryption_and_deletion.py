@@ -218,7 +218,7 @@ async def test_complete_user_data_purge_me_data(client):
         receipt_row = receipt_res.scalar_one_or_none()
         assert receipt_row is not None
         assert receipt_row.consent_withdrawal_recorded is True
-        assert receipt_row.consent_withdrawal_evidence["statutory_basis"] == "DPDP_ACT_2023_SECTION_12"
+        assert receipt_row.consent_withdrawal_evidence["statutory_note"] == "CITIZEN_RIGHT_TO_ERASURE_PENDING_LEGAL_REVIEW"
         # Zero PII in receipt
         assert email not in str(receipt_row.consent_withdrawal_evidence)
         assert "Purge Citizen" not in str(receipt_row.consent_withdrawal_evidence)

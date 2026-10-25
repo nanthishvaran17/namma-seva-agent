@@ -30,8 +30,10 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = ""  # Must be set via env/secret manager
-    DOC_ENCRYPTION_KEY: str = ""  # Separate AES-256 key for sensitive documents at rest
-    FIELD_ENCRYPTION_KEY: str = ""  # Separate AES-256 key for field-level encryption (PII)
+    DOC_ENCRYPTION_KEY: str = ""  # Dedicated 256-bit key for sensitive documents at rest
+    FIELD_ENCRYPTION_KEY: str = ""  # Dedicated 256-bit key for field-level encryption (PII)
+    BLIND_INDEX_KEY: str = ""  # Dedicated 256-bit key for phone number blind indexing
+    DELETION_PEPPER: str = ""  # Dedicated 256-bit pepper for HMAC-SHA256 deletion receipts
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
@@ -95,6 +97,10 @@ class Settings(BaseSettings):
                 self.DOC_ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
             if not self.FIELD_ENCRYPTION_KEY:
                 self.FIELD_ENCRYPTION_KEY = "field-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
+            if not self.BLIND_INDEX_KEY:
+                self.BLIND_INDEX_KEY = "blind-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
+            if not self.DELETION_PEPPER:
+                self.DELETION_PEPPER = "pepper-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
             if not self.WHATSAPP_VERIFY_TOKEN:
                 self.WHATSAPP_VERIFY_TOKEN = "dev_verify_token_local"
             if not self.WHATSAPP_APP_SECRET:
@@ -102,34 +108,29 @@ class Settings(BaseSettings):
             return self
 
         # Non-development (production/staging or unset): strict fail-closed enforcement
-        if not self.SECRET_KEY or self.SECRET_KEY in INSECURE_DEFAULT_SECRETS or len(self.SECRET_KEY) < 32:
-            raise ValueError(
-                "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
-                "but SECRET_KEY is missing, insecure, or under 32 characters. Startup aborted."
-            )
-        if not self.DOC_ENCRYPTION_KEY or len(self.DOC_ENCRYPTION_KEY) < 32:
-            raise ValueError(
-                "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
-                "but DOC_ENCRYPTION_KEY is missing, insecure, or under 32 characters. "
-                "Document encryption requires a dedicated 256-bit key distinct from SECRET_KEY. Startup aborted."
-            )
-        if not self.FIELD_ENCRYPTION_KEY or len(self.FIELD_ENCRYPTION_KEY) < 32:
-            raise ValueError(
-                "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
-                "but FIELD_ENCRYPTION_KEY is missing, insecure, or under 32 characters. "
-                "Field-level encryption requires a dedicated 256-bit key distinct from SECRET_KEY and DOC_ENCRYPTION_KEY. Startup aborted."
-            )
-        # Strict key separation checks
-        if self.DOC_ENCRYPTION_KEY == self.SECRET_KEY:
-            raise ValueError(
-                "CRITICAL SECURITY CONFIGURATION ERROR: Key separation violation. "
-                "DOC_ENCRYPTION_KEY cannot equal SECRET_KEY. Startup aborted."
-            )
-        if self.FIELD_ENCRYPTION_KEY == self.SECRET_KEY or self.FIELD_ENCRYPTION_KEY == self.DOC_ENCRYPTION_KEY:
-            raise ValueError(
-                "CRITICAL SECURITY CONFIGURATION ERROR: Key separation violation. "
-                "FIELD_ENCRYPTION_KEY must be strictly distinct from SECRET_KEY and DOC_ENCRYPTION_KEY. Startup aborted."
-            )
+        keys_map = {
+            "SECRET_KEY": self.SECRET_KEY,
+            "DOC_ENCRYPTION_KEY": self.DOC_ENCRYPTION_KEY,
+            "FIELD_ENCRYPTION_KEY": self.FIELD_ENCRYPTION_KEY,
+            "BLIND_INDEX_KEY": self.BLIND_INDEX_KEY,
+            "DELETION_PEPPER": self.DELETION_PEPPER,
+        }
+        for name, val in keys_map.items():
+            if not val or len(val) < 32 or val in INSECURE_DEFAULT_SECRETS:
+                raise ValueError(
+                    f"CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
+                    f"but {name} is missing, insecure, or under 32 characters. Startup aborted."
+                )
+
+        # Strict 5-way pairwise key separation verification
+        names = list(keys_map.keys())
+        for i in range(len(names)):
+            for j in range(i + 1, len(names)):
+                if keys_map[names[i]] == keys_map[names[j]]:
+                    raise ValueError(
+                        f"CRITICAL SECURITY CONFIGURATION ERROR: Key separation violation. "
+                        f"{names[i]} cannot equal {names[j]}. All 5 security keys must be strictly distinct. Startup aborted."
+                    )
         if not self.WHATSAPP_APP_SECRET or len(self.WHATSAPP_APP_SECRET) < 16:
             raise ValueError(
                 "CRITICAL SECURITY CONFIGURATION ERROR: ENVIRONMENT is non-development ('production'), "
