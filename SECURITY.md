@@ -117,8 +117,36 @@ In production (`ENVIRONMENT=production` or `staging`), startup aborts immediatel
   | `BLIND_INDEX_KEY` | Lookups by phone fail. | **Recoverable** if `FIELD_ENCRYPTION_KEY` is intact (run `reindex-blind-index`). |
   | `DELETION_PEPPER` | Verification of historical deletion receipts fails. | **Irrecoverable** verification capability. |
   | `SECRET_KEY` | All citizen and admin JWT authentication tokens are invalidated. | **Recoverable** (users simply re-login). |
-- **Backup & Escrow Strategy:**
-  - Production keys must be archived using an offline, split-custody key escrow mechanism (e.g. Shamir's Secret Sharing with a 3-of-5 threshold held by designated departmental trustees) stored in sealed physical safe storage or dedicated Hardware Security Modules (HSM).
+- **Backup & Escrow Strategy (Student-Scale — Current):**
+
+  > [!IMPORTANT]
+  > The Shamir's Secret Sharing / HSM plan described in earlier drafts was aspirational and inappropriate for a student research prototype. The plan below is what we actually implement and can actually restore from.
+
+  **Tier 1 — Cloud Secrets Manager (primary):**
+  - All five production keys are stored as named secrets in a cloud secrets manager (GCP Secret Manager, AWS Secrets Manager, or equivalent).
+  - Application reads secrets at startup via the provider's SDK or environment injection; secrets never touch the filesystem or git.
+  - The secrets manager version history provides the equivalent of rotation rollback.
+
+  **Tier 2 — Offline Encrypted Backup (single cold copy):**
+  - Once per rotation event, an operator exports all five keys as a single JSON blob, encrypts it with `gpg --symmetric --cipher-algo AES256`, and stores the GPG-encrypted file in two offline locations (e.g., an encrypted USB drive kept by the project supervisor and a second copy in the university's secure storage).
+  - The passphrase for the GPG archive is held separately from the encrypted file (e.g., supervisor's sealed envelope).
+
+  **Restore Drill (must be documented on every rotation):**
+  1. Retrieve GPG archive from offline storage.
+  2. Decrypt: `gpg --decrypt keys-backup-YYYY-MM-DD.gpg > keys.json`
+  3. Load each key into the secrets manager under the correct name.
+  4. Restart application; confirm startup passes `validate_production_secrets`.
+  5. Run `python -m pytest backend/tests/ -q --env production-equivalent` (or equivalent smoke test) and verify zero failures.
+  6. Record restore drill date, operator name, and result in the project's lab notebook.
+
+  **What this does NOT protect against:**
+  - Simultaneous compromise of secrets manager AND offline backups (treat as total loss — all encrypted citizen data is permanently irrecoverable).
+  - Multi-party key splitting is marked **FUTURE** below.
+
+  **Future (not implemented, not claimed):**
+  - Shamir's Secret Sharing (3-of-5 threshold), Hardware Security Modules (HSM), or Envelope Encryption with a KMS-managed master key — documented here only as a roadmap item for any future production handover to a government agency.
+
+
 - **Pepper Rotation Impact on Historical Deletion Receipts:**
   - Because `user_id_hash` and `receipt_signature` are computed using `DELETION_PEPPER`, rotating the pepper means historical receipts cannot be verified against the new pepper.
   - To preserve auditability across rotations, older pepper versions must be preserved in an archived key registry for audit validation, or the organisation must formally document that pepper rotation demarcates independent verification epochs.
