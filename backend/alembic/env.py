@@ -75,7 +75,8 @@ async def run_async_migrations() -> None:
     """
 
     sec = config.get_section(config.config_ini_section, {}) or {}
-    sec["sqlalchemy.url"] = settings.DATABASE_URL
+    custom_url = config.get_main_option("sqlalchemy.url")
+    sec["sqlalchemy.url"] = custom_url if custom_url else settings.DATABASE_URL
     connectable = async_engine_from_config(
         sec,
         prefix="sqlalchemy.",

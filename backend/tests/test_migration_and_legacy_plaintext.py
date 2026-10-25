@@ -110,9 +110,18 @@ async def test_batch_migration_encrypts_plaintext_rows():
         assert stats2["users_reencrypted"] == 0
         assert stats2["documents_reencrypted"] == 0
 
-def test_alembic_configuration_valid():
-    """Fix 3: Verifies Alembic migration configuration and revision script exist and are valid."""
+def test_alembic_upgrade_head_and_check_zero_drift_on_empty_db(tmp_path):
+    """
+    Verifies that 'alembic upgrade head' on an empty fresh database creates the full schema,
+    and 'alembic check' against SQLAlchemy models detects zero drift.
+    """
+    fresh_db = tmp_path / "fresh_alembic_test.db"
     cfg = Config("alembic.ini")
-    script_loc = cfg.get_main_option("script_location")
-    assert script_loc is not None
-    assert "alembic" in script_loc
+    cfg.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{fresh_db.resolve()}")
+
+    # 1. Run upgrade head on empty database
+    command.upgrade(cfg, "head")
+
+    # 2. Run alembic check: raises if any unmigrated model changes or drift exist
+    command.check(cfg)
+

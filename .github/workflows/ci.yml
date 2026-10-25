@@ -9,6 +9,21 @@ on:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: namma_user
+          POSTGRES_PASSWORD: namma_secure_password_2026
+          POSTGRES_DB: namma_seva_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +38,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Run Pytest Test Suite & 50-Case Benchmark
+      - name: Verify Full Alembic Schema Migration on PostgreSQL Container
+        env:
+          PYTHONPATH: .
+          DATABASE_URL: postgresql+asyncpg://namma_user:namma_secure_password_2026@localhost:5432/namma_seva_ci
+          ENVIRONMENT: test
+        run: |
+          alembic upgrade head
+          alembic check
+
+      - name: Run Pytest Test Suite & 50-Case Benchmark (SQLite + Postgres)
         env:
           PYTHONPATH: .
           ENVIRONMENT: test
