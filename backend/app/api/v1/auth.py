@@ -301,7 +301,7 @@ async def delete_citizen_data(
     await db.execute(delete(ReminderModel).where(ReminderModel.user_id == user_id))
     await db.execute(delete(UserConsent).where(UserConsent.user_id == user_id))
     
-    # 6. Delete citizen activity logs but strictly PRESERVE administrative audit logs
+    # 6. Delete citizen activity logs but strictly PRESERVE administrative audit logs (scrubbing citizen PII)
     admin_actions = {
         "PLAYBOOK_VERIFICATION_STATUS_CHANGE",
         "ADMIN_USER_ROLE_CHANGE",
@@ -313,6 +313,45 @@ async def delete_citizen_data(
         .where(AuditLogModel.user_id == user_id)
         .where(~AuditLogModel.action.in_(admin_actions))
     )
+
+    # Sanitize details on preserved administrative audit rows
+    preserved_logs_res = await db.execute(
+        select(AuditLogModel)
+        .where(AuditLogModel.user_id == user_id)
+        .where(AuditLogModel.action.in_(admin_actions))
+    )
+
+    pii_targets = {
+        current_user.email.lower() if current_user.email else "",
+        current_user.full_name.lower() if current_user.full_name else "",
+        str(current_user.phone_number).strip() if current_user.phone_number else ""
+    }
+    pii_targets = {p for p in pii_targets if p and len(p) > 2}
+
+    def sanitize_obj(obj):
+        if isinstance(obj, dict):
+            new_dict = {}
+            for k, v in obj.items():
+                k_lower = str(k).lower()
+                if any(pii_key in k_lower for pii_key in ("email", "phone", "name", "extracted", "aadhaar", "address")):
+                    new_dict[k] = "[REDACTED_PURGED_CITIZEN_PII]"
+                else:
+                    new_dict[k] = sanitize_obj(v)
+            return new_dict
+        elif isinstance(obj, list):
+            return [sanitize_obj(item) for item in obj]
+        elif isinstance(obj, str):
+            val_lower = obj.lower()
+            for target in pii_targets:
+                if target in val_lower:
+                    return "[REDACTED_PURGED_CITIZEN_PII]"
+            return obj
+        return obj
+
+    for alog in preserved_logs_res.scalars().all():
+        if alog.details:
+            alog.details = sanitize_obj(alog.details)
+            db.add(alog)
     
     # 7. Delete user account credentials
     await db.execute(delete(User).where(User.id == user_id))
