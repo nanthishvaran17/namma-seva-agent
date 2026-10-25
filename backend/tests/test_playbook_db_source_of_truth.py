@@ -25,8 +25,8 @@ async def client():
         yield c
 
 @pytest.fixture(autouse=True)
-def preserve_playbook_disk():
-    """Preserves disk JSON files so test modifications are cleanly reverted."""
+async def preserve_playbook_disk():
+    """Preserves disk JSON files and DB state so test modifications are cleanly reverted."""
     service_id = "community_certificate"
     playbook_file = Path(settings.PLAYBOOKS_DIR) / f"{service_id}.json"
     original_content = None
@@ -39,6 +39,13 @@ def preserve_playbook_disk():
         if original_content and playbook_file.exists():
             with open(playbook_file, "w", encoding="utf-8") as f:
                 f.write(original_content)
+        async with AsyncSessionLocal() as session:
+            db_model = await session.get(ServicePlaybookModel, service_id)
+            if db_model:
+                db_model.verification_status = "NEEDS_VERIFICATION"
+                db_model.verified_by = "PENDING_OFFICIAL_VERIFICATION"
+                db_model.last_verified = None
+                await session.commit()
         playbook_loader.reload()
 
 @pytest.mark.asyncio

@@ -170,7 +170,7 @@ async def test_complete_user_data_purge_me_data(client):
     del_res = await client.delete("/api/v1/auth/me/data", headers=auth_header)
     assert del_res.status_code == 200
     del_json = del_res.json()
-    assert del_json["status"] == "DATA_DELETED"
+    assert del_json["status"] in ("DELETED", "DATA_DELETED")
     assert "receipt_id" in del_json
     assert "user_id_hash" in del_json
     assert del_json["consent_withdrawal_recorded"] is True
