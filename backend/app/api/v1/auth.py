@@ -318,7 +318,7 @@ async def delete_citizen_data(
     await db.commit()
 
     return {
-        "status": "DATA_DELETED",
+        "status": "DELETED",
         "receipt_id": receipt.id,
         "user_id_hash": user_id_hash,
         "deleted_at": now.isoformat(),
