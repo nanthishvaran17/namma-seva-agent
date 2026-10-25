@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     FIELD_ENCRYPTION_KEY: str = ""  # Dedicated 256-bit key for field-level encryption (PII)
     BLIND_INDEX_KEY: str = ""  # Dedicated 256-bit key for phone number blind indexing
     DELETION_PEPPER: str = ""  # Dedicated 256-bit pepper for HMAC-SHA256 deletion receipts
+    CURRENT_DOC_KEY_VERSION: str = "1"
+    CURRENT_FIELD_KEY_VERSION: str = "1"
+    CURRENT_BLIND_INDEX_KEY_VERSION: str = "1"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 

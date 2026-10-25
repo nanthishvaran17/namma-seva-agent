@@ -53,12 +53,21 @@ def _derive_field_key() -> bytes:
     key_str = settings.FIELD_ENCRYPTION_KEY or "field-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
     return hashlib.sha256(key_str.encode("utf-8")).digest()
 
+def get_current_doc_key_version() -> str:
+    return getattr(settings, "CURRENT_DOC_KEY_VERSION", "1")
+
+def get_current_field_key_version() -> str:
+    return getattr(settings, "CURRENT_FIELD_KEY_VERSION", "1")
+
+def get_current_blind_index_key_version() -> str:
+    return getattr(settings, "CURRENT_BLIND_INDEX_KEY_VERSION", "1")
+
 def get_doc_key(version: str = "1") -> bytes:
     """Retrieves document key by version tag ('1', '2', etc.), consulting keyring for rotation."""
     v_clean = version.replace("v", "")
     if v_clean in _DOC_KEY_RING:
         return _DOC_KEY_RING[v_clean]
-    if v_clean == "1":
+    if v_clean == get_current_doc_key_version().replace("v", "") or v_clean == "1":
         return _derive_doc_key()
     raise ValueError(f"Unknown document encryption key version '{version}' - no key found in keyring for rotation")
 
@@ -67,7 +76,7 @@ def get_field_key(version: str = "1") -> bytes:
     v_clean = version.replace("v", "")
     if v_clean in _FIELD_KEY_RING:
         return _FIELD_KEY_RING[v_clean]
-    if v_clean == "1":
+    if v_clean == get_current_field_key_version().replace("v", "") or v_clean == "1":
         return _derive_field_key()
     raise ValueError(f"Unknown field encryption key version '{version}' - no key found in keyring for rotation")
 
@@ -76,7 +85,7 @@ def get_blind_index_key(version: str = "1") -> bytes:
     v_clean = version.replace("v", "")
     if v_clean in _BLIND_INDEX_KEY_RING:
         return _BLIND_INDEX_KEY_RING[v_clean]
-    if v_clean == "1":
+    if v_clean == get_current_blind_index_key_version().replace("v", "") or v_clean == "1":
         key_str = settings.BLIND_INDEX_KEY or "blind-sec-0123456789abcdef0123456789abcdef0123456789abcdef"
         return hashlib.sha256(key_str.encode("utf-8")).digest()
     raise ValueError(f"Unknown blind index key version '{version}' - no key found in keyring for rotation")
@@ -88,7 +97,7 @@ def get_blind_index_key(version: str = "1") -> bytes:
 def encrypt_document_bytes(
     plaintext: bytes,
     associated_data: Optional[bytes] = None,
-    key_version: str = "1"
+    key_version: Optional[str] = None
 ) -> bytes:
     """
     Encrypts arbitrary document bytes using AES-256-GCM with a fresh random 12-byte nonce per file.
@@ -98,7 +107,8 @@ def encrypt_document_bytes(
     if not plaintext:
         return b""
 
-    v_clean = key_version.replace("v", "")
+    ver = key_version or get_current_doc_key_version()
+    v_clean = ver.replace("v", "")
     key = get_doc_key(v_clean)
     aesgcm = AESGCM(key)
     nonce = os.urandom(NONCE_SIZE_BYTES)
@@ -162,7 +172,7 @@ def decrypt_string(ciphertext_b64: str) -> str:
 # Field-Level Encryption (AES-256-GCM + Blind Index)
 # ---------------------------------------------------------------------------
 
-def encrypt_field(plaintext: str, key_version: str = "1") -> str:
+def encrypt_field(plaintext: str, key_version: Optional[str] = None) -> str:
     """
     Encrypts a field string using AES-256-GCM with a fresh random nonce.
     Format: FLE:<version>:<urlsafe_base64(nonce + ciphertext + tag)>
@@ -172,7 +182,8 @@ def encrypt_field(plaintext: str, key_version: str = "1") -> str:
     if not plaintext:
         return ""
 
-    v_clean = key_version.replace("v", "")
+    ver = key_version or get_current_field_key_version()
+    v_clean = ver.replace("v", "")
     key = get_field_key(v_clean)
     aesgcm = AESGCM(key)
     nonce = os.urandom(NONCE_SIZE_BYTES)
