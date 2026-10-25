@@ -18,14 +18,14 @@ In a civic assistance platform handling citizen documentation and government wor
 | Threat Category | Potential Attack Vector | Status | Defensive Control & Implementation Details |
 |:---|:---|:---|:---|
 | **Brute Force / Scraping** | Automated credential guessing or LLM quota exhaustion | **IMPLEMENTED (Wave 1)** | Safe IP resolution via `get_client_ip()` (never trusts `X-Forwarded-For` unless from `TRUSTED_PROXIES`; walks proxy chains right-to-left). In-memory token bucket rate limiting on `/auth/login`, `/auth/register`, `/chat`, `/documents/upload`, `/whatsapp/webhook`. |
-| **Webhook Spoofing & Replay** | Forged Meta payloads or replayed WhatsApp messages | **IMPLEMENTED (Wave 1)** | Constant-time HMAC-SHA256 signature verification (`X-Hub-Signature-256`). Persistent database deduplication (`webhook_processed_messages` table). Decoupled async background processing. |
-| **Document Exposure at Rest** | Physical disk theft or unauthorized host file inspection | **IMPLEMENTED (Wave 1)** | AES-256-GCM encryption with per-file 12-byte random nonce and 16-byte authentication tag. Dedicated `DOC_ENCRYPTION_KEY` separate from `SECRET_KEY`. Fail-closed production startup. |
-| **PII / Data Retention Abuse** | Citizen requests deletion under DPDP Act 2023 | **IMPLEMENTED (Wave 1)** | `DELETE /api/v1/auth/me/data` atomically purges all database rows across 9 tables and physically deletes all files on disk under `storage/uploads/{user_id}/`. |
+| **Webhook Spoofing & Replay** | Forged Meta payloads or replayed WhatsApp messages | **IMPLEMENTED (Wave 1)** | Constant-time HMAC-SHA256 signature verification (`X-Hub-Signature-256`). Persistent database deduplication (`webhook_processed_messages` table). Decoupled async background processing. Retry-safe state transitions (`received` → `processing` → `processed`/`failed`). |
+| **Document Exposure at Rest** | Physical disk theft or unauthorized host file inspection | **IMPLEMENTED (Wave 1)** | AES-256-GCM encryption with per-file 12-byte random nonce and 16-byte authentication tag. Bound Authenticated Additional Data (`AAD = f"{user_id}:{document_id}"`). Key versioning header (`b"NSEV1"`, `b"NSEV2"`) supporting zero-downtime rotation. Dedicated `DOC_ENCRYPTION_KEY`. |
+| **Database Field-Level Exposure** | SQL dump exposes citizen phone number, name, or OCR data | **IMPLEMENTED (Wave 1)** | Field-level AES-256-GCM encryption for `User.full_name`, `User.phone_number`, and `UserDocumentModel.extracted_fields`. HMAC-SHA256 blind index (`phone_blind_index`) for deterministic lookups without storing plaintext phone numbers. Dedicated `FIELD_ENCRYPTION_KEY`. |
+| **PII / Data Retention Abuse** | Citizen requests deletion under DPDP Act 2023 | **IMPLEMENTED (Wave 1)** | `DELETE /api/v1/auth/me/data` atomically purges citizen records across 8 tables and physically deletes files under `storage/uploads/{user_id}/`. Retains non-PII deletion receipt and preserves admin accountability logs. |
 | **Malicious File Upload** | Executable/polyglot files disguised as images/PDFs | **IMPLEMENTED (Wave 1)** | Strict binary magic-byte inspection (PDF, PNG, JPEG, WebP), strict extension and declared MIME cross-matching, path traversal sanitization, and storage under isolated UUID filenames. |
-| **Unauthorized Playbook Tampering** | Citizen modifies eligibility, fees, or official URLs | **IMPLEMENTED (Wave 1)** | Admin RBAC (`require_admin_user`), status synchronization across in-memory catalog, SQLite/PostgreSQL DB, and disk JSON. Invariant enforcement (`last_verified` is strictly null for unverified playbooks). Audit log trail (`who`, `when`, `old_status`, `new_status`). |
+| **Unauthorized Playbook Tampering** | Citizen modifies eligibility, fees, or official URLs | **IMPLEMENTED (Wave 1)** | Admin RBAC (`require_admin_user`). Database is the sole source of truth; disk writes are excluded from production request paths. Divergence detection and operator-only export. Invariant enforcement (`last_verified` is strictly null for unverified playbooks). Audit log trail. |
 | **Unauthorized Access (IDOR)** | Attacker guesses `task_id` or `document_id` of another citizen | **IMPLEMENTED (Wave 0)** | Object-level authorization checks verify `record.user_id == current_user.id` on all authenticated operations. |
 | **Prompt Injection via OCR** | Malicious text in uploaded document instructs LLM to bypass rules | **PLANNED (Wave 2)** | Document text will be parsed into structured JSON schemas before presentation to agent; prompt sandwiching and instruction/data separation guardrails. |
-| **Database Field-Level Encryption** | SQL dump exposes citizen phone number or name | **PLANNED (Wave 2)** | Field-level envelope encryption for sensitive columns (`phone_number`, `full_name`) in the database. |
 | **Distributed Rate Limiting** | Multi-worker uvicorn cluster bypasses local memory limits | **PLANNED (Wave 2)** | Redis-backed distributed token bucket with atomic Lua scripts. |
 
 ---
@@ -50,59 +50,88 @@ In production multi-node clusters, in-memory rate limiting must be upgraded to:
 
 ---
 
-## 4. Document Encryption at Rest (AES-256-GCM)
+## 4. Cryptographic Architecture: Key Separation, File & Field Encryption
 
-### Key Separation & Fail-Closed Startup:
-- Citizen documents are encrypted before writing to disk using **AES-256-GCM**.
-- The encryption key is loaded from the `DOC_ENCRYPTION_KEY` environment variable. It is strictly separate from `SECRET_KEY` (which signs JWTs).
-- In production (`ENVIRONMENT=production` or `staging`), startup aborts immediately if `DOC_ENCRYPTION_KEY` is missing, default, or under 32 characters.
+### Strict Three-Key Separation (Fail-Closed Startup):
+In production (`ENVIRONMENT=production` or `staging`), startup aborts immediately if any key is missing, insecure, or shared across purposes:
+1. `SECRET_KEY`: Used exclusively for JWT access token cryptographic signing (HS256).
+2. `DOC_ENCRYPTION_KEY`: Used exclusively for AES-256-GCM encryption of physical files at rest.
+3. `FIELD_ENCRYPTION_KEY`: Used exclusively for field-level encryption of citizen PII and blind indexing.
 
-### Key Rotation Runbook:
-1. To rotate `DOC_ENCRYPTION_KEY`, run a dual-key re-encryption migration script:
-   - Provide `OLD_DOC_ENCRYPTION_KEY` and `NEW_DOC_ENCRYPTION_KEY`.
-   - The script decrypts each file under `storage/uploads/` using the old key, verifies the GCM authentication tag, re-encrypts with a fresh 12-byte random IV using the new key, and writes the ciphertext atomically.
-2. Update `DOC_ENCRYPTION_KEY` in production environment / secret manager and restart instances.
+```
++--------------------------------------------------------------------------------+
+| Key Separation Invariant:                                                      |
+| SECRET_KEY != DOC_ENCRYPTION_KEY != FIELD_ENCRYPTION_KEY                       |
+| All keys must be >= 32 characters (256-bit entropy) in production.             |
++--------------------------------------------------------------------------------+
+```
 
-### Key-Loss Consequence:
-> [!CAUTION]
-> **Irreversible Data Loss:** AES-256-GCM provides authenticated ciphertext with no backdoor. If `DOC_ENCRYPTION_KEY` is lost, deleted, or overwritten without a backup, **all stored citizen documents are permanently unrecoverable**. Regular encrypted key backups in a hardware security module (HSM) or cloud KMS (Google Cloud KMS / AWS KMS) are mandatory.
+### File-Level Encryption at Rest (AES-256-GCM + AAD Binding):
+- **Binary Format:** `[4-byte 'NSEV' + 1-byte version] + [12-byte random nonce] + [ciphertext + 16-byte auth tag]`
+- **Authenticated Additional Data (AAD) Binding:** Every file is encrypted with `AAD = f"{user_id}:{document_id}".encode("utf-8")`.
+  - If an attacker attempts to copy or swap an encrypted file on disk to another citizen's account, AES-GCM tag verification fails (`InvalidTag`), completely preventing document ownership forgery.
+- **Key Versioning & Zero-Downtime Rotation:**
+  - Files are tagged with version headers (`b"NSEV1"`, `b"NSEV2"`).
+  - The runtime maintains a versioned keyring (`_DOC_KEY_RING`). When decrypting, the engine extracts the version byte, selects the appropriate key, and verifies the authentication tag without requiring instantaneous batch re-encryption.
+
+### Field-Level Encryption (FLE) & Blind Index:
+- **Sensitive Citizen Fields:** `User.full_name`, `User.phone_number`, and `UserDocumentModel.extracted_fields` are transparently encrypted before database storage via SQLAlchemy `TypeDecorator` (`EncryptedString` and `EncryptedJSON`).
+- **Encrypted Field Format:** `FLE:<version>:<urlsafe_base64(nonce + ciphertext + tag)>`
+- **HMAC-SHA256 Blind Index (`phone_blind_index`):**
+  - Storing encrypted phone numbers prevents SQL equality searches (`SELECT * FROM users WHERE phone_number = ?`).
+  - To preserve fast, deterministic citizen lookups (e.g. from WhatsApp incoming messages) without exposing plaintext phone numbers, the system computes a one-way HMAC-SHA256 blind index over the canonicalized telephone number (`91XXXXXXXXXX`).
+  - Database queries search exclusively on `phone_blind_index = ?`. Even with raw SQL access, an attacker cannot recover citizen phone numbers from the index without breaking HMAC-SHA256.
 
 ---
 
-## 5. Data Deletion (DPDP Act 2023) & Backup Retention Policy
+## 5. Citizen Data Deletion (DPDP Act 2023) & Audit Preservation
 
-### `/api/v1/auth/me/data` Deletion Scope:
-When a citizen invokes `DELETE /api/v1/auth/me/data`:
-1. **Live Database Purge:** The system atomically purges all records linked to `user_id` across:
-   - `users`
-   - `user_tasks`
-   - `task_events`
-   - `user_documents`
-   - `reminders`
-   - `conversations`
-   - `messages`
-   - `user_consents`
-   - `audit_logs`
-2. **Physical Disk Erasure:** All files stored in the citizen's directory (`storage/uploads/{user_id}/`) and the directory itself are permanently deleted from disk.
-3. **Session Invalidation:** The citizen's token is immediately rendered invalid as the underlying user record no longer exists.
+### `/api/v1/auth/me/data` Deletion Workflow:
+When a citizen exercises their Right to Erasure under the Digital Personal Data Protection (DPDP) Act 2023, Section 12:
 
-### Honest Backup Retention Disclosure:
-While live database rows and physical storage files are purged immediately upon request:
-- **Cold Backups / Snapshots:** Offline database snapshots, WAL archives, and disaster-recovery object storage backups retain historical cold copies until their natural rolling retention window expires (typically 14 to 30 days depending on infrastructure configuration).
-- **Disaster Recovery Safeguard:** Cold backups are not surgically altered. In the event of a disaster recovery database restoration, an automated post-restore tombstone replay script re-applies all historical deletion logs to ensure deleted citizen records are not inadvertently resurrected.
+1. **Deletion Receipt Generation (Zero PII):**
+   - A `DeletionReceiptModel` record is generated containing:
+     - `id`: Unique receipt UUID
+     - `user_id_hash`: One-way SHA-256 digest of citizen ID (cannot be linked back without user record)
+     - `deletion_timestamp`: UTC timestamp of purge execution
+     - `request_channel`: Channel initiating deletion (`WEB`, `WHATSAPP`, etc.)
+     - `consent_withdrawal_recorded`: Boolean flag confirming explicit consent revocation
+     - `consent_withdrawal_evidence`: Statutory record (`{"statutory_basis": "DPDP_ACT_2023_SECTION_12", "action": "CITIZEN_CONSENT_REVOCATION_AND_DATA_PURGE"}`)
+     - `receipt_signature`: Cryptographic HMAC receipt signature for verification
+2. **Live Database Purge:** The system atomically purges all personal records linked to `user_id` across:
+   - `users` (account credentials and profile)
+   - `user_tasks` and `task_events` (application state)
+   - `user_documents` (metadata and extracted OCR fields)
+   - `reminders` (scheduled notifications)
+   - `conversations` and `messages` (chat history)
+   - `user_consents` (granted consents)
+   - Citizen activity audit logs (`USER_LOGIN`, `DOCUMENT_UPLOAD`, etc.)
+3. **Preservation of Administrative Accountability Logs:**
+   - Administrative audit log entries (actions matching `PLAYBOOK_VERIFICATION_STATUS_CHANGE`, `ADMIN_USER_ROLE_CHANGE`, `ADMIN_OVERRIDE`) are **strictly preserved**.
+   - Citizen personal activity is erased, but official government actions taken by admins or reviewers remain immutable to prevent administrative accountability tampering.
+4. **Physical Disk Erasure:** All files stored in `storage/uploads/{user_id}/` and the directory itself are permanently deleted via secure recursive unlinking.
+
+### Open Legal-Review Questions:
+1. **Statutory Retention vs. Right to Erasure:** Under DPDP Act 2023 Section 12, what is the required statutory retention window for the non-PII deletion receipt and consent withdrawal evidence to defend against post-deletion regulatory audits?
+2. **Cross-Departmental Appeals:** If an application was submitted to an external e-District portal before local data purge, does Tamil Nadu e-Governance Agency (TNeGA) require an immutable audit trail linking the receipt to state portal transaction IDs?
+3. **Disaster Recovery Rolling Snapshots:** Clarify legal disclosure guidelines regarding cold backup retention windows (14-30 days) before full snapshot rotation.
+
+### Honest Retention & Trace Policies:
+- **Application Logs:** Citizen phone numbers are masked (`91********10`). Message bodies and raw OCR payloads are **never logged**.
+- **LLM Traces:** In development and benchmark evaluations, responses are generated locally using the deterministic mock provider. No citizen personal data or application documents are sent to external third-party model APIs without explicit user consent.
+- **Cold Backups:** Offline database snapshots retain historical data for 14 to 30 days. On disaster recovery restoration, an automated post-restore tombstone replay script re-applies historical deletion receipts to ensure erased records are not resurrected.
 
 ---
 
 ## 6. Playbook Integrity & Verification Workflow
 
+- **Source of Truth:** The **Database (`service_playbooks` table) is the sole ground truth**.
+- **Disk Isolation on Request Paths:** HTTP API endpoints (`PATCH /admin/playbooks/{id}/status`) update the database and in-memory loader, but **never write to disk JSON files** in production.
+- **Explicit Operator Export:** Disk JSON files can only be synchronized via explicit operator commands (`python -m backend.app.cli export-playbooks`) or migration scripts.
+- **Divergence Detection:** The server logs a `WARNING` on startup if discrepancies are detected between disk definitions and database records.
 - **Status Progression:** `DRAFT` → `NEEDS_VERIFICATION` → `VERIFIED` → `RETIRED`.
-- **RBAC:** Only authenticated users with `role="ADMIN"` or `role="REVIEWER"` can modify playbook status.
+- **RBAC:** Only authenticated users with `role="ADMIN"` can modify playbook verification status.
 - **Verification Invariant:** A playbook with `verification_status="NEEDS_VERIFICATION"` must carry `last_verified = null` and `verified_by = "PENDING_OFFICIAL_VERIFICATION"`. Only playbooks verified against official government orders carry a non-null verification timestamp.
-- **Three-Tier Persistence:** Status changes update:
-  1. In-memory catalog (`playbook_loader.catalog`)
-  2. Database model (`service_playbooks`)
-  3. JSON file on disk (`knowledge/playbooks/{service_id}.json`)
-- **Immutable Audit Trail:** All status updates record an audit log entry detailing who made the change, when, previous status, new status, and review notes.
 
 ---
 
