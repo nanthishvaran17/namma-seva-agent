@@ -172,10 +172,21 @@ def decrypt_string(ciphertext_b64: str) -> str:
 # Field-Level Encryption (AES-256-GCM + Blind Index)
 # ---------------------------------------------------------------------------
 
-def encrypt_field(plaintext: str, key_version: Optional[str] = None) -> str:
+def compute_field_aad(table: str, column: str, row_id: str) -> bytes:
+    """Computes Authenticated Additional Data binding for a database table, column, and row ID."""
+    return f"{table}:{column}:{row_id}".encode("utf-8")
+
+def encrypt_field(
+    plaintext: str,
+    associated_data: Optional[bytes] = None,
+    key_version: Optional[str] = None
+) -> str:
     """
-    Encrypts a field string using AES-256-GCM with a fresh random nonce.
-    Format: FLE:<version>:<urlsafe_base64(nonce + ciphertext + tag)>
+    Encrypts a field string using AES-256-GCM.
+    If associated_data is provided:
+        Format: FLE:<version>:AAD:<urlsafe_base64(nonce + ciphertext + tag)>
+    If associated_data is None:
+        Format: FLE:<version>:<urlsafe_base64(nonce + ciphertext + tag)>
     """
     if plaintext is None:
         return None
@@ -187,36 +198,52 @@ def encrypt_field(plaintext: str, key_version: Optional[str] = None) -> str:
     key = get_field_key(v_clean)
     aesgcm = AESGCM(key)
     nonce = os.urandom(NONCE_SIZE_BYTES)
-    ciphertext = aesgcm.encrypt(nonce, str(plaintext).encode("utf-8"), None)
+    ciphertext = aesgcm.encrypt(nonce, str(plaintext).encode("utf-8"), associated_data)
     encoded = base64.urlsafe_b64encode(nonce + ciphertext).decode("ascii")
+    if associated_data is not None:
+        return f"FLE:{v_clean}:AAD:{encoded}"
     return f"FLE:{v_clean}:{encoded}"
 
-def decrypt_field(ciphertext_str: str) -> str:
+def decrypt_field(
+    ciphertext_str: str,
+    associated_data: Optional[bytes] = None
+) -> str:
     """
     Decrypts an FLE encrypted field string.
-    If the string does not have the 'FLE:' prefix, returns it as-is for backwards compatibility.
+    - If format is FLE:<version>:AAD:<b64>: requires matching associated_data.
+      If swapped to another row or column, AES-GCM tag verification fails (InvalidTag).
+    - If format is FLE:<version>:<b64>: legacy ciphertext without AAD, decrypts with associated_data=None.
+    - If string is unencrypted plaintext, returns as-is for backwards compatibility.
     """
     if ciphertext_str is None:
         return None
     if not isinstance(ciphertext_str, str) or not ciphertext_str.startswith("FLE:"):
         return ciphertext_str
 
-    parts = ciphertext_str.split(":", 2)
-    if len(parts) != 3:
+    parts = ciphertext_str.split(":", 3)
+    if len(parts) == 4 and parts[2] == "AAD":
+        # AAD-bound field
+        version_tag = parts[1]
+        b64_payload = parts[3]
+        expected_aad = associated_data
+    elif len(parts) == 3:
+        # Legacy field without AAD (FLE:1:... or FLE:2:...)
+        version_tag = parts[1]
+        b64_payload = parts[2]
+        expected_aad = None
+    else:
         return ciphertext_str
 
-    version_tag = parts[1]
-    b64_payload = parts[2]
     try:
         raw = base64.urlsafe_b64decode(b64_payload.encode("ascii"))
         nonce = raw[:NONCE_SIZE_BYTES]
         ciphertext = raw[NONCE_SIZE_BYTES:]
         key = get_field_key(version_tag)
         aesgcm = AESGCM(key)
-        decrypted = aesgcm.decrypt(nonce, ciphertext, None)
+        decrypted = aesgcm.decrypt(nonce, ciphertext, expected_aad)
         return decrypted.decode("utf-8")
     except Exception as e:
-        logger.error("Failed to decrypt field with version %s: %s", version_tag, e)
+        logger.error("Failed to decrypt field with version %s", version_tag)
         raise
 
 def compute_phone_blind_index(

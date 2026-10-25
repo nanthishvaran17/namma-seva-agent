@@ -7,7 +7,8 @@ from sqlalchemy import text
 from backend.app.core.crypto import (
     encrypt_field,
     decrypt_field,
-    compute_phone_blind_index
+    compute_phone_blind_index,
+    compute_field_aad
 )
 
 logger = logging.getLogger(__name__)
@@ -15,8 +16,9 @@ logger = logging.getLogger(__name__)
 async def migrate_plaintext_rows_to_encryption(session: AsyncSession) -> Dict[str, Any]:
     """
     Scans existing database rows and migrates legacy unencrypted plaintext values
-    to AES-256-GCM field-level encryption (FLE) with blind indexing.
-    Safe and idempotent: rows already encrypted (prefixed with 'FLE:') are skipped.
+    and legacy un-bound FLE values to AES-256-GCM field-level encryption with AAD binding
+    (table:column:row_id) and blind indexing.
+    Safe and idempotent: rows already encrypted with AAD ('FLE:<version>:AAD:') are skipped.
     """
     stats = {
         "users_scanned": 0,
@@ -36,18 +38,25 @@ async def migrate_plaintext_rows_to_encryption(session: AsyncSession) -> Dict[st
         needs_update = False
 
         new_name = raw_name
-        if raw_name and not str(raw_name).startswith("FLE:"):
-            new_name = encrypt_field(raw_name)
-            needs_update = True
+        aad_name = compute_field_aad("users", "full_name", str(uid))
+        if raw_name and ":AAD:" not in str(raw_name):
+            try:
+                plain_name = decrypt_field(raw_name, associated_data=aad_name)
+                new_name = encrypt_field(plain_name, associated_data=aad_name)
+                needs_update = True
+            except Exception as e:
+                logger.warning("Could not decrypt user %s full_name during migration: %s", uid, e)
 
         new_phone = raw_phone
-        plain_phone_for_index = raw_phone
-        if raw_phone:
-            if not str(raw_phone).startswith("FLE:"):
-                new_phone = encrypt_field(raw_phone)
+        plain_phone_for_index = None
+        aad_phone = compute_field_aad("users", "phone_number", str(uid))
+        if raw_phone and ":AAD:" not in str(raw_phone):
+            try:
+                plain_phone_for_index = decrypt_field(raw_phone, associated_data=aad_phone)
+                new_phone = encrypt_field(plain_phone_for_index, associated_data=aad_phone)
                 needs_update = True
-            else:
-                plain_phone_for_index = decrypt_field(raw_phone)
+            except Exception as e:
+                logger.warning("Could not decrypt user %s phone_number during migration: %s", uid, e)
 
         new_blind_idx = blind_idx
         if (not blind_idx) and plain_phone_for_index:
@@ -71,16 +80,20 @@ async def migrate_plaintext_rows_to_encryption(session: AsyncSession) -> Dict[st
         stats["documents_scanned"] += 1
         needs_update = False
 
+        aad_extracted = compute_field_aad("user_documents", "extracted_fields", str(did))
         new_extracted = raw_extracted
-        if raw_extracted and not str(raw_extracted).startswith("FLE:"):
-            payload_str = raw_extracted if isinstance(raw_extracted, str) else json.dumps(raw_extracted)
-            new_extracted = encrypt_field(payload_str)
+        if raw_extracted and ":AAD:" not in str(raw_extracted):
+            plain_str = decrypt_field(raw_extracted, associated_data=aad_extracted) if isinstance(raw_extracted, str) and raw_extracted.startswith("FLE:") else raw_extracted
+            payload_str = plain_str if isinstance(plain_str, str) else json.dumps(plain_str)
+            new_extracted = encrypt_field(payload_str, associated_data=aad_extracted)
             needs_update = True
 
+        aad_corrections = compute_field_aad("user_documents", "user_corrections", str(did))
         new_corrections = raw_corrections
-        if raw_corrections and not str(raw_corrections).startswith("FLE:"):
-            payload_str = raw_corrections if isinstance(raw_corrections, str) else json.dumps(raw_corrections)
-            new_corrections = encrypt_field(payload_str)
+        if raw_corrections and ":AAD:" not in str(raw_corrections):
+            plain_str = decrypt_field(raw_corrections, associated_data=aad_corrections) if isinstance(raw_corrections, str) and raw_corrections.startswith("FLE:") else raw_corrections
+            payload_str = plain_str if isinstance(plain_str, str) else json.dumps(plain_str)
+            new_corrections = encrypt_field(payload_str, associated_data=aad_corrections)
             needs_update = True
 
         if needs_update:
