@@ -94,11 +94,16 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
     }
   };
 
-  const sampleSuggestions = [
-    'Enakku community certificate venum',
+  const sampleSuggestions = language === 'ta' ? [
+    'சாதிச் சான்றிதழ் பெற என்ன ஆவணங்கள் தேவை?',
     'வருமானச் சான்றிதழ் செல்லுபடியாகும் காலம் என்ன?',
+    'முதல் பட்டதாரி சலுகை யாருக்கு கிடைக்கும்?',
+    'கல்வி உதவித்தொகைக்கு என்ன ஆவணங்கள் தேவை?'
+  ] : [
+    'Documents needed for Community certificate',
+    'Income certificate validity duration',
     'First graduate certificate eligibility rules',
-    'Post matric scholarship-ku enna documents venum?'
+    'Scholarship application guidelines'
   ];
 
   return (
@@ -122,7 +127,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="chat-body">
+      <div className="chat-body" ref={chatBodyRef}>
         {messages.map((m, idx) => (
           <div key={idx} className={`msg-row ${m.sender === 'USER' ? 'user' : 'agent'}`}>
             <div className={`avatar-icon ${m.sender === 'USER' ? 'user' : 'agent'}`}>
@@ -264,7 +269,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
 
       {/* Suggested chips if conversation is short */}
       {messages.length <= 2 && (
-        <div style={{ padding: '0.5rem 1.5rem', background: '#f8fafc', display: 'flex', gap: '0.5rem', overflowX: 'auto', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '0.65rem 1.25rem', background: '#f8fafc', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', borderTop: '1px solid var(--border-color)' }}>
           {sampleSuggestions.map((s, idx) => (
             <button
               key={idx}

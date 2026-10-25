@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   Award, GraduationCap, Users, Sprout, ShoppingBag, 
   HeartHandshake, Check, ArrowRight, Clock, FileText, 
-  Sparkles, PhoneCall, ChevronRight, X, ShieldCheck, Share2 
+  Sparkles, PhoneCall, ChevronRight, X, ShieldCheck, Share2,
+  HelpCircle, CheckCircle2, AlertCircle, RefreshCw
 } from 'lucide-react';
 
 interface CategoryExplorerProps {
@@ -39,6 +40,45 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
   onAskServiceAI,
 }) => {
   const [selectedService, setSelectedService] = useState<QuickService | null>(null);
+  const [currentDocIndex, setCurrentDocIndex] = useState(0);
+  const [docAnswers, setDocAnswers] = useState<Record<number, boolean>>({});
+  const [wizardFinished, setWizardFinished] = useState(false);
+  const [showHelpNote, setShowHelpNote] = useState<string | null>(null);
+
+  const alternativeTips: Record<string, { ta: string; en: string }> = {
+    community_certificate: {
+      ta: 'கவலை வேண்டாம்! பெற்றோரின் சாதிச் சான்றிதழ் இல்லாவிட்டால், தந்தை அல்லது தாயின் பள்ளி மாற்றுச் சான்றிதழ் (TC) அல்லது இரத்த வழி உறவினரின் சான்றிதழை ஆதாரமாகப் பயன்படுத்தலாம்.',
+      en: 'No worries! If parents do not have a community cert, their school TC or blood relatives’ certificate can be accepted as valid proof.'
+    },
+    income_certificate: {
+      ta: 'மாத சம்பளச் சீட்டு இல்லாவிட்டால், கிராம நிர்வாக அலுவலரிடம் (VAO) சுய உறுதிமொழிப் படிவம் (Self-Declaration) பெற்று சமர்ப்பிக்கலாம்.',
+      en: 'If you do not have a salary slip, self-employed persons can submit a simple Self-Declaration affidavit at the VAO office.'
+    },
+    first_graduate_certificate: {
+      ta: 'பெற்றோர் பள்ளி செல்லவில்லை என்றால், அவர்கள் படிப்பறிவின்மை உறுதிமொழிப் படிவத்தில் (Joint Declaration) கையொப்பமிட்டால் போதுமானது.',
+      en: 'If parents did not attend school, signing the official Joint Declaration of illiteracy affidavit is sufficient.'
+    },
+    post_matric_scholarship: {
+      ta: 'வங்கிக் கணக்குடன் ஆதார் இணைக்கப்படவில்லை என்றால் (Aadhaar Seeding), உங்கள் வங்கிக் கிளையை அணுகி 1 நாளில் NPCI மேப்பிங் செய்யலாம்.',
+      en: 'If Aadhaar is not seeded to bank account, visit your bank branch to complete NPCI mapping in 1 day.'
+    },
+    smart_ration_card: {
+      ta: 'எரிவாயு இணைப்பு ரசீது இல்லையென்றால், "எரிவாயு இல்லாத குடும்பம் (No LPG)" என தேர்வு செய்து ரேஷன் அட்டைக்கு விண்ணப்பிக்கலாம்.',
+      en: 'If you do not have an LPG gas bill, you can select "No LPG Cylinder" and apply for smart card easily.'
+    },
+    magalir_urimai_thogai: {
+      ta: 'சொந்த வீடு அல்லது நில ஆவணங்கள் தேவையில்லை! குடும்ப ரேஷன் அட்டை, ஆதார் மற்றும் மின்சார இணைப்பு எண் மட்டுமே போதுமானது.',
+      en: 'No property docs needed! Smart ration card, Aadhaar, and electricity consumer number are sufficient.'
+    },
+    nativity_certificate: {
+      ta: 'பிறப்புச் சான்றிதழ் இல்லாவிட்டால், தமிழ்நாட்டில் 5 ஆண்டுகள் படித்ததற்கான பள்ளி மாற்றுச் சான்றிதழ் (TC) அல்லது ரேஷன் அட்டை போதும்.',
+      en: 'If birth certificate is unavailable, 5-year study proof / school TC or family ration card serves as valid residence proof.'
+    },
+    farmer_registration: {
+      ta: 'சொந்த நிலம் இல்லாத குத்தகை விவசாயிகள், கிராம நிர்வாக அலுவலரிடம் உழவர் சாகுபடி உறுதிமொழி பெற்று நலத்திட்டங்களைப் பெறலாம்.',
+      en: 'Tenant farmers without land patta can obtain a cultivation certificate from the VAO to register.'
+    }
+  };
 
   // PhonePe / Google Pay style visual services
   const quickServices: QuickService[] = [
@@ -367,7 +407,13 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
               key={svc.id}
               type="button"
               className="phonepe-tile-btn"
-              onClick={() => setSelectedService(svc)}
+              onClick={() => {
+                setSelectedService(svc);
+                setCurrentDocIndex(0);
+                setDocAnswers({});
+                setWizardFinished(false);
+                setShowHelpNote(null);
+              }}
             >
               <div className="phonepe-tile-icon-box" style={{ background: svc.bg }}>
                 <span className="phonepe-emoji">{svc.icon}</span>
@@ -375,15 +421,25 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
               <span className="phonepe-tile-name">
                 {language === 'ta' ? svc.title_ta : svc.title_en}
               </span>
-              <span className="phonepe-tile-tag">
-                {language === 'ta' ? svc.fee_ta : svc.fee_en}
+              <div className="phonepe-tile-meta-row">
+                <span className="phonepe-tile-tag">
+                  {language === 'ta' ? svc.fee_ta : svc.fee_en}
+                </span>
+                {svc.badge_ta && (
+                  <span className="phonepe-tile-badge-sub">
+                    {language === 'ta' ? svc.badge_ta : svc.title_en}
+                  </span>
+                )}
+              </div>
+              <span className="phonepe-tile-action-prompt">
+                {language === 'ta' ? '👉 தொட்டுச் சரிபார்க்கவும்' : '👉 Tap to Check'}
               </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* 2. Quick Helpline & Verified Source Banner (PhonePe Help Desk Style) */}
+      {/* 2. Quick Helpline & Verified Source Banner */}
       <div className="phonepe-banner-row">
         <div className="phonepe-banner-item helpline">
           <div className="banner-icon-circle green">
@@ -414,134 +470,288 @@ export const CategoryExplorer: React.FC<CategoryExplorerProps> = ({
         </div>
       </div>
 
-      {/* 3. 1-Click Detail Sheet Modal — Ultra Clear, Friendly & Actionable */}
-      {selectedService && (
-        <div className="phonepe-modal-backdrop" onClick={() => setSelectedService(null)}>
-          <div className="phonepe-modal-sheet" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="phonepe-modal-header">
-              <div className="phonepe-modal-title-group">
-                <div className="phonepe-modal-icon-badge" style={{ background: selectedService.bg }}>
-                  {selectedService.icon}
-                </div>
-                <div>
-                  <h3 className="phonepe-modal-heading">
-                    {language === 'ta' ? selectedService.title_ta : selectedService.title_en}
-                  </h3>
-                  <span className="phonepe-modal-sub">
-                    {selectedService.category} • {language === 'ta' ? selectedService.badge_ta : selectedService.title_en}
-                  </span>
-                </div>
-              </div>
+      {/* 3. Step-by-Step Interactive Guided Wizard Modal */}
+      {selectedService && (() => {
+        const docs = language === 'ta' ? selectedService.docs_ta : selectedService.docs_en;
+        const totalDocs = docs.length;
+        const currentDoc = docs[currentDocIndex];
 
-              <button className="phonepe-close-btn" onClick={() => setSelectedService(null)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Quick Summary Pill Bar */}
-            <div className="phonepe-meta-strip">
-              <div className="meta-strip-item">
-                <span className="meta-strip-label">{language === 'ta' ? 'அரசு கட்டணம்:' : 'Govt Fee:'}</span>
-                <span className="meta-strip-value highlight">{language === 'ta' ? selectedService.fee_ta : selectedService.fee_en}</span>
-              </div>
-              <div className="meta-strip-divider" />
-              <div className="meta-strip-item">
-                <span className="meta-strip-label">{language === 'ta' ? 'கிடைக்கும் காலம்:' : 'Processing Time:'}</span>
-                <span className="meta-strip-value">{language === 'ta' ? selectedService.days_ta : selectedService.days_en}</span>
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className="phonepe-modal-desc">
-              {language === 'ta' ? selectedService.desc_ta : selectedService.desc_en}
-            </p>
-
-            {/* Step 1: Documents Needed */}
-            <div className="phonepe-card-block">
-              <div className="block-title">
-                <FileText size={17} color="#0071e3" />
-                <span>{language === 'ta' ? 'தேவையான ஆவணங்கள் (கட்டாயம் வைத்திருக்கவும்):' : 'Documents Required:'}</span>
-              </div>
-              <ul className="phonepe-doc-list">
-                {(language === 'ta' ? selectedService.docs_ta : selectedService.docs_en).map((doc, idx) => (
-                  <li key={idx} className="phonepe-doc-item">
-                    <div className="green-check-dot">
-                      <Check size={13} color="white" />
-                    </div>
-                    <span>{doc}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Step 2: How to Apply (3 Steps) */}
-            <div className="phonepe-card-block">
-              <div className="block-title">
-                <Sparkles size={17} color="#ff9500" />
-                <span>{language === 'ta' ? 'எளிதாக விண்ணப்பிக்கும் முறை (3 படிகள்):' : 'How to Apply (3 Simple Steps):'}</span>
-              </div>
-              <div className="phonepe-steps-list">
-                {(language === 'ta' ? selectedService.steps_ta : selectedService.steps_en).map((step, idx) => (
-                  <div key={idx} className="phonepe-step-row">
-                    <span className="step-number">{idx + 1}</span>
-                    <span className="step-text">{step}</span>
+        return (
+          <div className="phonepe-modal-backdrop" onClick={() => setSelectedService(null)}>
+            <div className="phonepe-modal-sheet" onClick={(e) => e.stopPropagation()}>
+              {/* Modal Header */}
+              <div className="phonepe-modal-header">
+                <div className="phonepe-modal-title-group">
+                  <div className="phonepe-modal-icon-badge" style={{ background: selectedService.bg }}>
+                    {selectedService.icon}
                   </div>
-                ))}
+                  <div>
+                    <h3 className="phonepe-modal-heading">
+                      {language === 'ta' ? selectedService.title_ta : selectedService.title_en}
+                    </h3>
+                    <span className="phonepe-modal-sub">
+                      {selectedService.category} • {language === 'ta' ? selectedService.fee_ta : selectedService.fee_en} • {language === 'ta' ? selectedService.days_ta : selectedService.days_en}
+                    </span>
+                  </div>
+                </div>
+
+                <button className="phonepe-close-btn" onClick={() => setSelectedService(null)}>
+                  <X size={20} />
+                </button>
               </div>
-            </div>
 
-            {/* Modal Bottom Action Bar */}
-            <div className="phonepe-modal-actions">
-              <button
-                type="button"
-                className="phonepe-primary-btn"
-                style={{ background: '#0f172a' }}
-                onClick={() => {
-                  const query = `${selectedService.title_ta} பெற என்ன ஆவணங்கள், தகுதிகள் மற்றும் கட்டணம் தேவை?`;
-                  setSelectedService(null);
-                  if (onAskServiceAI) {
-                    onAskServiceAI(query);
-                  }
-                }}
-              >
-                <Sparkles size={17} color="#ffb74d" />
-                <span>{language === 'ta' ? 'AI-யிடம் கேட்க' : 'Ask AI'}</span>
-              </button>
+              {/* Wizard Content: Step by Step */}
+              {!wizardFinished ? (
+                <div>
+                  {/* Progress Header */}
+                  <div className="wizard-progress-section">
+                    <div className="wizard-progress-info">
+                      <span>{language === 'ta' ? 'படி படியான ஆவண சரிபார்ப்பு' : 'Step-by-Step Document Check'}</span>
+                      <span className="wizard-step-pill">
+                        {language === 'ta' ? `ஆவணம் ${currentDocIndex + 1} / ${totalDocs}` : `Document ${currentDocIndex + 1} of ${totalDocs}`}
+                      </span>
+                    </div>
+                    <div className="wizard-progress-track">
+                      <div 
+                        className="wizard-progress-fill" 
+                        style={{ width: `${((currentDocIndex + 1) / totalDocs) * 100}%` }} 
+                      />
+                    </div>
+                  </div>
 
-              <button
-                type="button"
-                className="phonepe-share-btn"
-                onClick={() => {
-                  const text = encodeURIComponent(
-                    `*நம்ம சேவை AI வழிகாட்டி*\n${selectedService.title_ta}\nகட்டணம்: ${selectedService.fee_ta}\nகாலம்: ${selectedService.days_ta}\n\nதேவையான ஆவணங்கள்:\n${selectedService.docs_ta.map(d => '• ' + d).join('\n')}\n\nஅதிகாரப்பூர்வ தளம்: https://tnesevai.tn.gov.in`
-                  );
-                  window.open(`https://wa.me/?text=${text}`, '_blank');
-                }}
-                title={language === 'ta' ? 'ஆவணப் பட்டியலை WhatsApp-ல் பகிர்க' : 'Share checklist to WhatsApp'}
-              >
-                <Share2 size={17} color="#25D366" />
-                <span>WhatsApp</span>
-              </button>
+                  {/* Interactive Question Card */}
+                  <div className="wizard-question-box">
+                    <span className="wizard-q-label">
+                      {language === 'ta' ? '❓ உங்களிடம் இந்த ஆவணம் உள்ளதா?' : '❓ Do you have this document ready?'}
+                    </span>
+                    <div className="wizard-doc-display">
+                      <span className="doc-num-circle">{currentDocIndex + 1}</span>
+                      <h4 className="wizard-doc-name">{currentDoc}</h4>
+                    </div>
+                    <p className="wizard-doc-sub">
+                      {language === 'ta' 
+                        ? 'அரசு இ-சேவை மூலம் விண்ணப்பிக்க இந்த ஆவணம் தேவைப்படுகிறது.' 
+                        : 'This document is verified by authorities during submission.'}
+                    </p>
 
-              <button
-                type="button"
-                className="phonepe-primary-btn"
-                onClick={() => {
-                  const id = selectedService.id;
-                  setSelectedService(null);
-                  if (onStartService) {
-                    onStartService(id);
-                  }
-                }}
-              >
-                <span>{language === 'ta' ? 'விண்ணப்பிக்க வழிகாட்டி' : 'Apply Guide'}</span>
-                <ArrowRight size={17} />
-              </button>
+                    {/* Choice Buttons */}
+                    <div className="wizard-choices-row">
+                      <button
+                        type="button"
+                        className="wizard-choice-btn yes"
+                        onClick={() => {
+                          setDocAnswers(prev => ({ ...prev, [currentDocIndex]: true }));
+                          setShowHelpNote(null);
+                          if (currentDocIndex + 1 < totalDocs) {
+                            setCurrentDocIndex(prev => prev + 1);
+                          } else {
+                            setWizardFinished(true);
+                          }
+                        }}
+                      >
+                        <CheckCircle2 size={22} color="#15803d" />
+                        <span>{language === 'ta' ? 'ஆம், என்னிடம் உள்ளது' : 'Yes, I Have It'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="wizard-choice-btn no"
+                        onClick={() => {
+                          setDocAnswers(prev => ({ ...prev, [currentDocIndex]: false }));
+                          const tip = alternativeTips[selectedService.id]?.[language === 'ta' ? 'ta' : 'en'] || (
+                            language === 'ta'
+                              ? 'இந்த ஆவணம் இல்லாவிட்டால் மாற்று ஆவணம் அல்லது VAO உறுதிமொழி மூலம் விண்ணப்பிக்கலாம்.'
+                              : 'You may use an alternate proof or Self-Declaration affidavit.'
+                          );
+                          setShowHelpNote(tip);
+                        }}
+                      >
+                        <HelpCircle size={22} color="#b45309" />
+                        <span>{language === 'ta' ? 'இல்லை / மாற்று வழி என்ன?' : 'No / What Alternative?'}</span>
+                      </button>
+                    </div>
+
+                    {/* Empathetic Helpful Tip when User Clicks "No" */}
+                    {showHelpNote && (
+                      <div className="wizard-tip-box">
+                        <div className="wizard-tip-title">
+                          <AlertCircle size={18} color="#b45309" />
+                          <span>{language === 'ta' ? '💡 கவலை வேண்டாம்! அரசு மாற்று வழி:' : '💡 Official Alternative Guide:'}</span>
+                        </div>
+                        <p className="wizard-tip-text">{showHelpNote}</p>
+                        <div className="wizard-tip-actions">
+                          <button
+                            type="button"
+                            className="phonepe-primary-btn"
+                            style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+                            onClick={() => {
+                              setShowHelpNote(null);
+                              if (currentDocIndex + 1 < totalDocs) {
+                                setCurrentDocIndex(prev => prev + 1);
+                              } else {
+                                setWizardFinished(true);
+                              }
+                            }}
+                          >
+                            <span>{language === 'ta' ? 'அடுத்த ஆவணம் பார்க்க ➔' : 'Check Next Document ➔'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="phonepe-share-btn"
+                            style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+                            onClick={() => {
+                              const q = `${selectedService.title_ta} விண்ணப்பிக்க ${currentDoc} இல்லாவிட்டால் மாற்று வழி என்ன?`;
+                              setSelectedService(null);
+                              if (onAskServiceAI) {
+                                onAskServiceAI(q);
+                              }
+                            }}
+                          >
+                            <Sparkles size={14} color="#059669" />
+                            <span>{language === 'ta' ? 'AI-யிடம் விளக்கம் கேட்க' : 'Ask AI'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Step Completion Screen: Ready to Apply */
+                <div className="wizard-success-card">
+                  <div className="wizard-celebration-badge">
+                    <Sparkles size={16} color="#15803d" />
+                    <span>{language === 'ta' ? 'வாழ்த்துகள்! நீங்கள் விண்ணப்பிக்கலாம்!' : 'Ready to Apply!'}</span>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1d1d1f', marginBottom: '0.5rem' }}>
+                    {language === 'ta' ? `${selectedService.title_ta} ஆவணங்கள் சரிபார்க்கப்பட்டது` : `${selectedService.title_en} Documents Verified`}
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '1.25rem' }}>
+                    {language === 'ta' 
+                      ? 'அரசு கட்டணம் ₹60 செலுத்தி tnesevai.tn.gov.in போர்ட்டலில் அல்லது அருகிலுள்ள இ-சேவை மையத்தில் விண்ணப்பிக்கலாம்.'
+                      : 'You are eligible to submit application with govt fee of ₹60 on tnesevai.tn.gov.in.'}
+                  </p>
+
+                  {/* Checklist Summary */}
+                  <div className="wizard-summary-checklist">
+                    {docs.map((doc, idx) => {
+                      const hasDoc = docAnswers[idx] !== false;
+                      return (
+                        <div 
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '8px 12px',
+                            background: hasDoc ? '#f0fdf4' : '#fffbeb',
+                            borderRadius: '12px',
+                            border: `1px solid ${hasDoc ? '#bbf7d0' : '#fef08a'}`,
+                            fontSize: '0.86rem'
+                          }}
+                        >
+                          {hasDoc ? (
+                            <CheckCircle2 size={18} color="#15803d" />
+                          ) : (
+                            <AlertCircle size={18} color="#b45309" />
+                          )}
+                          <span style={{ fontWeight: 600, color: hasDoc ? '#166534' : '#854d0e', flex: 1 }}>
+                            {doc}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: hasDoc ? '#15803d' : '#b45309' }}>
+                            {hasDoc ? (language === 'ta' ? 'தயாராக உள்ளது' : 'Ready') : (language === 'ta' ? 'மாற்று வழி' : 'Alternative')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 3 Application Steps */}
+                  <div className="phonepe-card-block" style={{ textAlign: 'left', marginTop: '1.25rem' }}>
+                    <div className="block-title">
+                      <FileText size={17} color="#0071e3" />
+                      <span>{language === 'ta' ? 'அடுத்த 3 எளிய படிகள்:' : 'Next 3 Simple Steps:'}</span>
+                    </div>
+                    <div className="phonepe-steps-list">
+                      {(language === 'ta' ? selectedService.steps_ta : selectedService.steps_en).map((step, idx) => (
+                        <div key={idx} className="phonepe-step-row">
+                          <span className="step-number">{idx + 1}</span>
+                          <span className="step-text">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="phonepe-modal-actions" style={{ marginTop: '1.5rem' }}>
+                    <button
+                      type="button"
+                      className="phonepe-primary-btn"
+                      onClick={() => {
+                        const id = selectedService.id;
+                        setSelectedService(null);
+                        if (onStartService) {
+                          onStartService(id);
+                        }
+                      }}
+                    >
+                      <CheckCircle2 size={18} />
+                      <span>{language === 'ta' ? 'இ-சேவை வழிகாட்டியைத் தொடங்கு' : 'Start Application Task'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="phonepe-primary-btn"
+                      style={{ background: '#0f172a' }}
+                      onClick={() => {
+                        const q = `${selectedService.title_ta} விண்ணப்பிக்க முழு வழிகாட்டுதல் வேண்டும்.`;
+                        setSelectedService(null);
+                        if (onAskServiceAI) {
+                          onAskServiceAI(q);
+                        }
+                      }}
+                    >
+                      <Sparkles size={17} color="#ffb74d" />
+                      <span>{language === 'ta' ? 'AI வழிகாட்டியிடம் கேட்க' : 'Ask AI'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="phonepe-share-btn"
+                      onClick={() => {
+                        const text = encodeURIComponent(
+                          `*நம்ம சேவை AI வழிகாட்டி*\n${selectedService.title_ta}\nகட்டணம்: ${selectedService.fee_ta}\nகாலம்: ${selectedService.days_ta}\n\nசரிபார்க்கப்பட்ட ஆவணங்கள்:\n${selectedService.docs_ta.map(d => '• ' + d).join('\n')}\n\nஅதிகாரப்பூர்வ தளம்: https://tnesevai.tn.gov.in`
+                        );
+                        window.open(`https://wa.me/?text=${text}`, '_blank');
+                      }}
+                    >
+                      <Share2 size={17} color="#25D366" />
+                      <span>WhatsApp</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="phonepe-share-btn"
+                      style={{ borderColor: '#cbd5e1', color: '#475569' }}
+                      onClick={() => {
+                        setCurrentDocIndex(0);
+                        setDocAnswers({});
+                        setWizardFinished(false);
+                        setShowHelpNote(null);
+                      }}
+                      title={language === 'ta' ? 'மீண்டும் சோதிக்க' : 'Restart check'}
+                    >
+                      <RefreshCw size={16} />
+                      <span>{language === 'ta' ? 'மீண்டும் சரிபார்க்க' : 'Restart'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </section>
   );
 };

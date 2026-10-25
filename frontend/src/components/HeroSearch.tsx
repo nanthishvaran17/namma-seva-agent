@@ -61,12 +61,12 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ language, onSearch }) =>
   };
 
   const quickFilterPills = [
-    { label: language === 'ta' ? '📜 சாதிச் சான்றிதழ்' : 'Community Cert', query: 'சாதிச் சான்றிதழ் பெற என்ன ஆவணங்கள் தேவை?' },
-    { label: language === 'ta' ? '💰 வருமானச் சான்றிதழ்' : 'Income Cert', query: 'வருமானச் சான்றிதழ் பெற எப்படி விண்ணப்பிப்பது?' },
-    { label: language === 'ta' ? '🎓 முதல் பட்டதாரி சலுகை' : 'First Graduate', query: 'First graduate certificate eligibility in Tamil Nadu' },
-    { label: language === 'ta' ? '💵 கல்வி உதவித்தொகை' : 'Scholarships', query: 'Post matric scholarship eligibility and income limits' },
-    { label: language === 'ta' ? '🍚 ரேஷன் அட்டை' : 'Smart Ration Card', query: 'Smart ration card new application' },
-    { label: language === 'ta' ? '👩‍💼 மகளிர் உரிமைத் தொகை' : 'Magalir Urimai', query: 'Magalir Urimai Thogai 1000 eligibility guidelines' },
+    { label: language === 'ta' ? 'சாதிச் சான்றிதழ்' : 'Community Cert', query: 'சாதிச் சான்றிதழ் பெற என்ன ஆவணங்கள் தேவை?' },
+    { label: language === 'ta' ? 'வருமானச் சான்றிதழ்' : 'Income Cert', query: 'வருமானச் சான்றிதழ் பெற எப்படி விண்ணப்பிப்பது?' },
+    { label: language === 'ta' ? 'முதல் பட்டதாரி சலுகை' : 'First Graduate', query: 'First graduate certificate eligibility in Tamil Nadu' },
+    { label: language === 'ta' ? 'கல்வி உதவித்தொகை' : 'Scholarships', query: 'Post matric scholarship eligibility and income limits' },
+    { label: language === 'ta' ? 'ரேஷன் அட்டை' : 'Smart Ration Card', query: 'Smart ration card new application' },
+    { label: language === 'ta' ? 'மகளிர் உரிமைத் தொகை' : 'Magalir Urimai', query: 'Magalir Urimai Thogai 1000 eligibility guidelines' },
   ];
 
   return (

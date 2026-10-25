@@ -1140,10 +1140,16 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  height: 680px;
+  height: 540px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.home-chat-wrapper .chat-window {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .chat-header {
@@ -2787,11 +2793,16 @@ body {
 }
 
 .phonepe-hero-subtitle {
-  font-size: 1.12rem;
-  color: #64748b;
-  max-width: 680px;
-  margin: 0 auto 2.25rem;
-  line-height: 1.6;
+  font-size: 1.15rem;
+  color: #475569;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto 2rem;
+  line-height: 1.65;
+  word-break: normal;
+  overflow-wrap: break-word;
+  padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .phonepe-search-bar {
@@ -2916,31 +2927,28 @@ body {
 }
 
 .phonepe-pills-row {
-  max-width: 740px;
-  margin: 1.75rem auto 0;
+  max-width: 860px;
+  margin: 1.5rem auto 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  overflow: hidden;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .phonepe-pills-label {
-  font-size: 0.82rem;
-  color: #86868b;
+  font-size: 0.85rem;
+  color: #64748b;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .phonepe-pills-scroll {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 4px 0;
-}
-
-.phonepe-pills-scroll::-webkit-scrollbar {
-  display: none;
+  padding: 2px 0;
 }
 
 .phonepe-shortcut-pill {
@@ -3142,6 +3150,7 @@ body {
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 2.25rem 2rem;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
   animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3323,7 +3332,8 @@ body {
 }
 
 .phonepe-modal-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
   margin-top: 1.5rem;
 }
@@ -3375,13 +3385,55 @@ body {
     gap: 1.25rem 0.75rem;
   }
   .phonepe-hero-title {
-    font-size: 2.15rem;
+    font-size: 1.95rem;
+    line-height: 1.3;
+  }
+  .phonepe-hero-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+    line-height: 1.6;
   }
   .phonepe-hero-card {
-    padding: 2rem 1.25rem;
+    padding: 2.25rem 1.25rem 2rem;
+    border-radius: 24px;
+  }
+  .phonepe-search-bar {
+    padding: 6px 8px 6px 14px;
+    gap: 8px;
+  }
+  .phonepe-search-input {
+    font-size: 0.95rem;
+  }
+  .phonepe-search-actions {
+    gap: 4px;
+  }
+  .phonepe-mic-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  .phonepe-search-btn {
+    padding: 8px 16px;
+    font-size: 0.88rem;
+  }
+  .phonepe-pills-row {
+    margin-top: 1.25rem;
   }
   .phonepe-modal-actions {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .phonepe-search-bar {
+    flex-wrap: wrap;
+    border-radius: 20px;
+    padding: 10px 12px;
+  }
+  .phonepe-search-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 6px;
   }
 }
 
@@ -3467,3 +3519,239 @@ body {
     gap: 8px;
   }
 }
+
+/* ==========================================================================
+   STEP-BY-STEP INTERACTIVE WIZARD & TILE CARD ENHANCEMENTS
+   ========================================================================== */
+.phonepe-tile-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.phonepe-tile-badge-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #059669;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.phonepe-tile-action-prompt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0071e3;
+  margin-top: 2px;
+  transition: transform 0.15s ease;
+}
+
+.phonepe-tile-btn:hover .phonepe-tile-action-prompt {
+  transform: translateX(3px);
+}
+
+/* Wizard Progress */
+.wizard-progress-section {
+  margin-bottom: 1.5rem;
+}
+
+.wizard-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.6rem;
+}
+
+.wizard-step-pill {
+  background: #f1f5f9;
+  color: #0071e3;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+}
+
+.wizard-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.wizard-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0071e3 0%, #34c759 100%);
+  border-radius: 9999px;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Question Box */
+.wizard-question-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+}
+
+.wizard-q-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0071e3;
+  margin-bottom: 0.75rem;
+}
+
+.wizard-doc-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 0.5rem;
+}
+
+.doc-num-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0071e3;
+  color: white;
+  font-weight: 800;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wizard-doc-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1d1d1f;
+  line-height: 1.3;
+}
+
+.wizard-doc-sub {
+  font-size: 0.84rem;
+  color: #64748b;
+  margin-bottom: 1.25rem;
+}
+
+/* Choice Buttons */
+.wizard-choices-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.wizard-choice-btn {
+  padding: 1.15rem 1rem;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wizard-choice-btn.yes {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.wizard-choice-btn.yes:hover {
+  background: #dcfce7;
+  border-color: #22c55e;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.2);
+}
+
+.wizard-choice-btn.no {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.wizard-choice-btn.no:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  transform: translateY(-2px);
+}
+
+/* Tip Box */
+.wizard-tip-box {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 18px;
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+  text-align: left;
+  animation: fadeIn 0.2s ease;
+}
+
+.wizard-tip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #b45309;
+  margin-bottom: 0.4rem;
+}
+
+.wizard-tip-text {
+  font-size: 0.88rem;
+  color: #78350f;
+  line-height: 1.5;
+  margin-bottom: 0.85rem;
+}
+
+.wizard-tip-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Success Card */
+.wizard-success-card {
+  text-align: center;
+}
+
+.wizard-celebration-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #dcfce7;
+  color: #15803d;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 0.85rem;
+}
+
+.wizard-summary-checklist {
+  text-align: left;
+  margin: 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .wizard-choices-row {
+    grid-template-columns: 1fr;
+  }
+}
+
