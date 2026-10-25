@@ -56,10 +56,10 @@ class UserDocumentModel(Base):
 
     @extracted_fields.setter
     def extracted_fields(self, value: Any):
-        row_id = getattr(self, "id", None) or str(uuid.uuid4())
-        self.id = row_id
+        if not getattr(self, "id", None):
+            self.id = str(uuid.uuid4())
         payload_str = json.dumps(value) if not isinstance(value, str) else value
-        aad = compute_field_aad("user_documents", "extracted_fields", row_id)
+        aad = compute_field_aad("user_documents", "extracted_fields", self.id)
         self._extracted_fields = encrypt_field(payload_str, associated_data=aad)
 
     @property
@@ -77,10 +77,10 @@ class UserDocumentModel(Base):
 
     @user_corrections.setter
     def user_corrections(self, value: Any):
-        row_id = getattr(self, "id", None) or str(uuid.uuid4())
-        self.id = row_id
+        if not getattr(self, "id", None):
+            self.id = str(uuid.uuid4())
         payload_str = json.dumps(value) if not isinstance(value, str) else value
-        aad = compute_field_aad("user_documents", "user_corrections", row_id)
+        aad = compute_field_aad("user_documents", "user_corrections", self.id)
         self._user_corrections = encrypt_field(payload_str, associated_data=aad)
 
     user: Mapped["User"] = relationship("User", back_populates="documents")

@@ -43,7 +43,7 @@ async def test_blind_index_rotation_and_reindexing():
     re-hashes all phone numbers from FLE decrypted User.phone_number and
     enables queries to find users using the new key version.
     """
-    test_phone = "9876543210"
+    test_phone = f"95{uuid.uuid4().int % 100000000:08d}"
     user_id = str(uuid.uuid4())
     email = f"reindex_user_{uuid.uuid4().hex[:6]}@example.com"
 

@@ -45,9 +45,9 @@ class User(Base):
         if value is None:
             self._full_name = None
             return
-        row_id = getattr(self, "id", None) or str(uuid.uuid4())
-        self.id = row_id
-        aad = compute_field_aad("users", "full_name", row_id)
+        if not getattr(self, "id", None):
+            self.id = str(uuid.uuid4())
+        aad = compute_field_aad("users", "full_name", self.id)
         self._full_name = encrypt_field(str(value), associated_data=aad)
 
     @property
@@ -63,9 +63,9 @@ class User(Base):
             self._phone_number = None
             self.phone_blind_index = None
             return
-        row_id = getattr(self, "id", None) or str(uuid.uuid4())
-        self.id = row_id
-        aad = compute_field_aad("users", "phone_number", row_id)
+        if not getattr(self, "id", None):
+            self.id = str(uuid.uuid4())
+        aad = compute_field_aad("users", "phone_number", self.id)
         self._phone_number = encrypt_field(str(value), associated_data=aad)
         self.phone_blind_index = compute_phone_blind_index(str(value))
 
