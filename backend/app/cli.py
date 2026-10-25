@@ -64,6 +64,9 @@ def main():
     export_parser = subparsers.add_parser("export-playbooks", help="Export playbooks from DB ground truth to disk JSON files")
     migrate_parser = subparsers.add_parser("migrate-encryption", help="Batch encrypt legacy plaintext database rows to AES-256-GCM")
 
+    reindex_parser = subparsers.add_parser("reindex-blind-index", help="Reindex phone blind indexes using specified key version")
+    reindex_parser.add_argument("--key-version", default="1", help="Blind index key version tag to use (default: '1')")
+
     args = parser.parse_args()
     if args.command == "create-admin":
         code = asyncio.run(create_admin(args.email, args.password, args.full_name))
@@ -83,6 +86,14 @@ def main():
                 return await migrate_plaintext_rows_to_encryption(session)
         stats = asyncio.run(run_migration())
         print(f"Encryption migration completed successfully: {stats}")
+        sys.exit(0)
+    elif args.command == "reindex-blind-index":
+        from backend.app.db.migrations.reindex_blind_index import reindex_all_phone_blind_indexes
+        async def run_reindex():
+            async with AsyncSessionLocal() as session:
+                return await reindex_all_phone_blind_indexes(session, key_version=args.key_version)
+        stats = asyncio.run(run_reindex())
+        print(f"Blind index reindexing completed successfully: {stats}")
         sys.exit(0)
 
 if __name__ == "__main__":
