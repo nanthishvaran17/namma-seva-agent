@@ -19,6 +19,7 @@ from backend.app.models.document import UserDocumentModel
 from backend.app.models.reminder import ReminderModel
 from backend.app.models.conversation import ConversationModel, MessageModel
 from backend.app.models.audit import AuditLogModel
+from backend.app.models.deletion import DeletionReceiptModel
 
 @pytest.fixture
 async def client():
@@ -144,6 +145,18 @@ async def test_complete_user_data_purge_me_data(client):
 
         msg = MessageModel(conversation_id=conv.id, sender="user", content="Hello")
         session.add(msg)
+
+        # Citizen personal activity log (MUST be deleted on purge)
+        citizen_log = AuditLogModel(user_id=user_id, action="USER_LOGIN", details={"ip": "127.0.0.1"})
+        session.add(citizen_log)
+
+        # Admin accountability audit entry (MUST NOT be deleted on purge)
+        admin_audit = AuditLogModel(
+            user_id=user_id,
+            action="PLAYBOOK_VERIFICATION_STATUS_CHANGE",
+            details={"who": "reviewer@tnega.gov.in", "note": "Official administrative action"}
+        )
+        session.add(admin_audit)
         await session.commit()
 
         # Get file path
@@ -156,14 +169,19 @@ async def test_complete_user_data_purge_me_data(client):
     # 4. Invoke DELETE /me/data
     del_res = await client.delete("/api/v1/auth/me/data", headers=auth_header)
     assert del_res.status_code == 200
-    assert del_res.json()["status"] == "DELETED"
+    del_json = del_res.json()
+    assert del_json["status"] == "DATA_DELETED"
+    assert "receipt_id" in del_json
+    assert "user_id_hash" in del_json
+    assert del_json["consent_withdrawal_recorded"] is True
+    assert "receipt_signature" in del_json
 
     # 5. Assert physical file and user storage directory are purged
     assert not os.path.exists(storage_path)
     user_dir = os.path.dirname(storage_path)
     assert not os.path.exists(user_dir)
 
-    # 6. Assert 0 DB rows remain across all user tables
+    # 6. Assert 0 DB rows remain across all user tables and verify receipt & audit preservation
     async with AsyncSessionLocal() as session:
         # User
         assert (await session.get(User, user_id)) is None
@@ -182,9 +200,28 @@ async def test_complete_user_data_purge_me_data(client):
         # Conversations
         convs = (await session.execute(select(ConversationModel).where(ConversationModel.user_id == user_id))).scalars().all()
         assert len(convs) == 0
-        # Audit logs
-        logs = (await session.execute(select(AuditLogModel).where(AuditLogModel.user_id == user_id))).scalars().all()
-        assert len(logs) == 0
+        # Citizen personal activity audit logs: purged (0 rows)
+        citizen_logs = (await session.execute(
+            select(AuditLogModel).where(AuditLogModel.user_id == user_id, AuditLogModel.action == "USER_LOGIN")
+        )).scalars().all()
+        assert len(citizen_logs) == 0
+
+        # Admin accountability audit entry: PRESERVED (1 row)
+        admin_logs = (await session.execute(
+            select(AuditLogModel).where(AuditLogModel.user_id == user_id, AuditLogModel.action == "PLAYBOOK_VERIFICATION_STATUS_CHANGE")
+        )).scalars().all()
+        assert len(admin_logs) == 1
+        assert admin_logs[0].details["who"] == "reviewer@tnega.gov.in"
+
+        # Deletion receipt exists with zero PII
+        receipt_res = await session.execute(select(DeletionReceiptModel).where(DeletionReceiptModel.user_id_hash == del_json["user_id_hash"]))
+        receipt_row = receipt_res.scalar_one_or_none()
+        assert receipt_row is not None
+        assert receipt_row.consent_withdrawal_recorded is True
+        assert receipt_row.consent_withdrawal_evidence["statutory_basis"] == "DPDP_ACT_2023_SECTION_12"
+        # Zero PII in receipt
+        assert email not in str(receipt_row.consent_withdrawal_evidence)
+        assert "Purge Citizen" not in str(receipt_row.consent_withdrawal_evidence)
 
     # 7. Old token is rejected
     check_res = await client.get("/api/v1/auth/me", headers=auth_header)

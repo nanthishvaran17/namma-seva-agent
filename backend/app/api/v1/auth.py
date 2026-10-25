@@ -215,20 +215,57 @@ async def export_citizen_data(
 
 @router.delete("/me/data", status_code=status.HTTP_200_OK)
 async def delete_citizen_data(
+    request: Request,
     current_user: User = Depends(require_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Permanently erases all citizen data in compliance with the DPDP Act 2023:
-    1. Physically deletes all encrypted document files and user upload directories from disk.
-    2. Purges all user database records across documents, tasks, task events, reminders,
-       conversations, messages, consents, audit logs, and user credentials.
+    Permanently erases all citizen data in compliance with DPDP Act 2023 Sec 12:
+    1. Records a minimal, non-PII deletion receipt and consent withdrawal evidence.
+    2. Physically deletes all encrypted document files and user upload directories from disk.
+    3. Purges all user database records across documents, tasks, task events, reminders,
+       conversations, messages, consents, personal activity logs, and user credentials.
+    4. Preserves administrative accountability audit records (e.g. playbook verifications).
     """
     import os
     import shutil
+    import hmac
+    import hashlib
+    import uuid
+    from datetime import datetime, timezone
+    from backend.app.models.deletion import DeletionReceiptModel
+
     user_id = current_user.id
+    now = datetime.now(timezone.utc)
+    user_id_hash = hashlib.sha256(user_id.encode("utf-8")).hexdigest()
+    request_channel = request.headers.get("X-Request-Channel", "WEB")
+
+    # Capture consent withdrawal evidence before purge
+    consents_res = await db.execute(select(UserConsent).where(UserConsent.user_id == user_id))
+    user_consents = consents_res.scalars().all()
+    withdrawn_purposes = [c.consent_purpose for c in user_consents] or ["CITIZEN_SERVICE_ASSISTANCE"]
+
+    # Generate non-forgeable receipt signature using system secret
+    sig_payload = f"{user_id_hash}:{now.isoformat()}:{request_channel}"
+    receipt_sig = hmac.new(settings.SECRET_KEY.encode(), sig_payload.encode(), hashlib.sha256).hexdigest()
+
+    # 1. Record minimal, non-PII deletion receipt and consent-withdrawal evidence
+    receipt = DeletionReceiptModel(
+        id=str(uuid.uuid4()),
+        user_id_hash=user_id_hash,
+        deleted_at=now,
+        request_channel=request_channel,
+        consent_withdrawal_recorded=True,
+        consent_withdrawal_evidence={
+            "withdrawn_purposes": withdrawn_purposes,
+            "statutory_basis": "DPDP_ACT_2023_SECTION_12",
+            "withdrawal_timestamp": now.isoformat()
+        },
+        receipt_signature=receipt_sig
+    )
+    db.add(receipt)
     
-    # 1. Physically delete all uploaded files and user directory from disk
+    # 2. Physically delete all uploaded files and user directory from disk
     docs_res = await db.execute(select(UserDocumentModel).where(UserDocumentModel.user_id == user_id))
     user_docs = docs_res.scalars().all()
     for doc in user_docs:
@@ -242,7 +279,7 @@ async def delete_citizen_data(
     if os.path.exists(user_upload_dir):
         shutil.rmtree(user_upload_dir, ignore_errors=True)
 
-    # 2. Delete conversations and messages
+    # 3. Delete conversations and messages
     conv_res = await db.execute(select(ConversationModel.id).where(ConversationModel.user_id == user_id))
     conv_ids = [r[0] for r in conv_res.all()]
     if conv_ids:
@@ -250,7 +287,7 @@ async def delete_citizen_data(
         await db.execute(delete(MessageModel).where(MessageModel.conversation_id.in_(conv_ids)))
         await db.execute(delete(ConversationModel).where(ConversationModel.id.in_(conv_ids)))
 
-    # 3. Delete task events and tasks
+    # 4. Delete task events and tasks
     tasks_res = await db.execute(select(UserTaskModel.id).where(UserTaskModel.user_id == user_id))
     task_ids = [r[0] for r in tasks_res.all()]
     if task_ids:
@@ -258,19 +295,36 @@ async def delete_citizen_data(
         await db.execute(delete(TaskEventModel).where(TaskEventModel.task_id.in_(task_ids)))
         await db.execute(delete(UserTaskModel).where(UserTaskModel.id.in_(task_ids)))
 
-    # 4. Delete documents, reminders, consents, audit logs
+    # 5. Delete documents, reminders, consents
     await db.execute(delete(UserDocumentModel).where(UserDocumentModel.user_id == user_id))
     await db.execute(delete(ReminderModel).where(ReminderModel.user_id == user_id))
     await db.execute(delete(UserConsent).where(UserConsent.user_id == user_id))
-    await db.execute(delete(AuditLogModel).where(AuditLogModel.user_id == user_id))
     
-    # 5. Delete user account
+    # 6. Delete citizen activity logs but strictly PRESERVE administrative audit logs
+    admin_actions = {
+        "PLAYBOOK_VERIFICATION_STATUS_CHANGE",
+        "ADMIN_USER_ROLE_CHANGE",
+        "ADMIN_PLAYBOOK_STATUS_CHANGE",
+        "ADMIN_OVERRIDE"
+    }
+    await db.execute(
+        delete(AuditLogModel)
+        .where(AuditLogModel.user_id == user_id)
+        .where(~AuditLogModel.action.in_(admin_actions))
+    )
+    
+    # 7. Delete user account credentials
     await db.execute(delete(User).where(User.id == user_id))
     await db.commit()
 
     return {
-        "status": "DELETED",
-        "user_id": user_id,
+        "status": "DATA_DELETED",
+        "receipt_id": receipt.id,
+        "user_id_hash": user_id_hash,
+        "deleted_at": now.isoformat(),
+        "request_channel": request_channel,
+        "consent_withdrawal_recorded": True,
+        "receipt_signature": receipt_sig,
         "files_purged": len(user_docs),
-        "message": "All personal data, application tasks, and document metadata have been permanently erased from disk and database."
+        "message": "All personal records, files, and derived artifacts have been permanently erased under DPDP Act 2023."
     }
