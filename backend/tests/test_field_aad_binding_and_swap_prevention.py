@@ -105,11 +105,15 @@ async def test_fle_aad_column_swap_prevention():
             _ = user.phone_number
 
 @pytest.mark.asyncio
-async def test_legacy_fle_without_aad_handled_without_crash():
+async def test_legacy_fle_without_aad_handled_without_crash(monkeypatch):
     """
-    Fix 3: Legacy FLE values without AAD (FLE:1:<b64>) decrypt cleanly
-    without crashing, and batch migration upgrades them to AAD-bound.
+    Legacy FLE values (FLE:1:<b64>, no AAD) are rejected by default (ALLOW_LEGACY_FLE=False).
+    During the migration window (ALLOW_LEGACY_FLE=True), the ORM can read them and the batch
+    migration re-encrypts them to AAD-bound format.
+    After migration, legacy rows read cleanly without the flag.
     """
+    from backend.app.core import config as cfg_module
+
     user_id = str(uuid.uuid4())
     legacy_name = "Perumal Swamy"
     legacy_phone = "9776655443"
@@ -130,21 +134,37 @@ async def test_legacy_fle_without_aad_handled_without_crash():
         )
         await session.commit()
 
-    # 1. ORM reads legacy FLE:1 values without crashing
+    # 1. Without the flag, ORM must raise (fail-closed / default behaviour)
+    async with AsyncSessionLocal() as session:
+        user = await session.get(User, user_id)
+        assert user is not None
+        with pytest.raises(ValueError, match="Legacy FLE ciphertext"):
+            _ = user.full_name
+
+    # 2. With ALLOW_LEGACY_FLE=True (migration window), ORM reads cleanly
+    monkeypatch.setattr(cfg_module.settings, "ALLOW_LEGACY_FLE", True)
     async with AsyncSessionLocal() as session:
         user = await session.get(User, user_id)
         assert user is not None
         assert user.full_name == legacy_name
         assert user.phone_number == legacy_phone
 
-    # 2. Batch migration upgrades legacy FLE to AAD-bound
+    # 3. Batch migration re-encrypts legacy rows to AAD-bound format
     async with AsyncSessionLocal() as session:
         stats = await migrate_plaintext_rows_to_encryption(session)
         assert stats["users_reencrypted"] >= 1
 
-    # 3. Assert raw row now has :AAD: tag
+    # 4. After migration, raw DB row carries :AAD: tag
     async with AsyncSessionLocal() as session:
         raw_name = (await session.execute(
             text("SELECT full_name FROM users WHERE id = :uid"), {"uid": user_id}
         )).scalar()
         assert ":AAD:" in raw_name
+
+    # 5. After migration, ORM reads cleanly WITHOUT the flag (flag restored to False by monkeypatch)
+    monkeypatch.setattr(cfg_module.settings, "ALLOW_LEGACY_FLE", False)
+    async with AsyncSessionLocal() as session:
+        user = await session.get(User, user_id)
+        assert user is not None
+        assert user.full_name == legacy_name
+
