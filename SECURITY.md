@@ -76,14 +76,24 @@ In production (`ENVIRONMENT=production` or `staging`), startup aborts immediatel
 - **Binary Format:** `[4-byte 'NSEV' + 1-byte version] + [12-byte random nonce] + [ciphertext + 16-byte auth tag]`
 - **Authenticated Additional Data (AAD) Binding:** Every file is encrypted with `AAD = f"{user_id}:{document_id}".encode("utf-8")`.
   - If an attacker attempts to copy or swap an encrypted file on disk to another citizen's account, AES-GCM tag verification fails (`InvalidTag`), completely preventing document ownership forgery.
+- **NIST Nonce Limits & Invariant Reasoning:**
+  - Per **NIST SP 800-38D Appendix B**, when using randomly generated 96-bit (12-byte) nonces with AES-GCM, the total number of encryption invocations under any single key must not exceed **$2^{32}$**.
+  - Exceeding $2^{32}$ operations creates an unacceptable risk of nonce collision, which completely destroys AES-GCM confidentiality and authentication.
+  - While $2^{32}$ ($\approx 4.29$ billion) operations exceeds typical single-tenant student workload scales, our key rotation headers (`b"NSEV1"`, `b"NSEV2"`) and versioned keyrings ensure keys can be cleanly rotated well before reaching this theoretical limit without system downtime.
 - **Key Versioning & Zero-Downtime Rotation:**
   - Files are tagged with version headers (`b"NSEV1"`, `b"NSEV2"`).
   - The runtime maintains a versioned keyring (`_DOC_KEY_RING`). When decrypting, the engine extracts the version byte, selects the appropriate key, and verifies the authentication tag without requiring instantaneous batch re-encryption.
   - New writes dynamically adopt the primary key version indicated by `CURRENT_DOC_KEY_VERSION`.
 
-### Field-Level Encryption (FLE) & Blind Index:
-- **Sensitive Citizen Fields:** `User.full_name`, `User.phone_number`, and `UserDocumentModel.extracted_fields` are transparently encrypted before database storage via SQLAlchemy `TypeDecorator` (`EncryptedString` and `EncryptedJSON`).
-- **Encrypted Field Format:** `FLE:<version>:<urlsafe_base64(nonce + ciphertext + tag)>`
+### Field-Level Encryption (FLE) with Row/Column AAD Binding:
+- **Sensitive Citizen Fields:** `User.full_name`, `User.phone_number`, `UserDocumentModel.extracted_fields`, and `UserDocumentModel.user_corrections` are transparently encrypted before database storage.
+- **Row & Column AAD Binding Invariant:**
+  - To prevent ciphertext swap attacks (where an attacker copies Alice's encrypted full name into Bob's profile or swaps full_name into phone_number), every encrypted field is bound to `AAD = compute_field_aad(table, column, row_id)`:
+    $$\text{AAD} = \text{f"}\{\text{table}\}:\{\text{column}\}:\{\text{row\_id}\}"$$
+  - If an encrypted ciphertext is moved to a different row or a different column, AES-GCM authentication verification fails (`InvalidTag`) upon decryption.
+- **Encrypted Field Format:** `FLE:<version>:AAD:<urlsafe_base64(nonce + ciphertext + tag)>`
+- **Legacy Migration & Backwards Compatibility:**
+  - Un-bound legacy rows (`FLE:<version>:<b64>`) or plaintext rows are supported during transitions without crashing and are upgraded to AAD-bound ciphertexts by the batch migration utility (`python -m backend.app.cli migrate-encryption`).
 - **HMAC-SHA256 Blind Index (`phone_blind_index`):**
   - Storing encrypted phone numbers prevents SQL equality searches (`SELECT * FROM users WHERE phone_number = ?`).
   - To preserve fast, deterministic citizen lookups (e.g. from WhatsApp incoming messages) without exposing plaintext phone numbers, the system computes a one-way HMAC-SHA256 blind index over canonicalized phone numbers (`91XXXXXXXXXX`) using dedicated `BLIND_INDEX_KEY`.
@@ -94,6 +104,24 @@ In production (`ENVIRONMENT=production` or `staging`), startup aborts immediatel
     python -m backend.app.cli reindex-blind-index --key-version 2
     ```
   - This decodes user phone numbers in-memory via FLE and updates `phone_blind_index` to the new HMAC digest version without downtime.
+
+### Production Key Management, Secrets Injection & Backup Plan:
+- **Storage Location (Secrets Manager vs .env):**
+  - In development and CI, keys are configured via environment variables or `.env`.
+  - In **production**, keys must **NEVER** reside in disk `.env` files or git repositories. Keys must be injected into container process memory at runtime via an enterprise Secrets Manager (e.g., AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, or HashiCorp Vault).
+- **Key Loss Impact Matrix:**
+  | Lost Key | Immediate Impact | Recovery Feasibility |
+  |:---|:---|:---|
+  | `DOC_ENCRYPTION_KEY` | All citizen uploaded documents (PDFs, images) become permanently unreadable. | **Irrecoverable** (permanent data loss). |
+  | `FIELD_ENCRYPTION_KEY` | All citizen PII (names, phones, OCR extracted data) in database is permanently unreadable. | **Irrecoverable** (permanent data loss). |
+  | `BLIND_INDEX_KEY` | Lookups by phone fail. | **Recoverable** if `FIELD_ENCRYPTION_KEY` is intact (run `reindex-blind-index`). |
+  | `DELETION_PEPPER` | Verification of historical deletion receipts fails. | **Irrecoverable** verification capability. |
+  | `SECRET_KEY` | All citizen and admin JWT authentication tokens are invalidated. | **Recoverable** (users simply re-login). |
+- **Backup & Escrow Strategy:**
+  - Production keys must be archived using an offline, split-custody key escrow mechanism (e.g. Shamir's Secret Sharing with a 3-of-5 threshold held by designated departmental trustees) stored in sealed physical safe storage or dedicated Hardware Security Modules (HSM).
+- **Pepper Rotation Impact on Historical Deletion Receipts:**
+  - Because `user_id_hash` and `receipt_signature` are computed using `DELETION_PEPPER`, rotating the pepper means historical receipts cannot be verified against the new pepper.
+  - To preserve auditability across rotations, older pepper versions must be preserved in an archived key registry for audit validation, or the organisation must formally document that pepper rotation demarcates independent verification epochs.
 
 ---
 
