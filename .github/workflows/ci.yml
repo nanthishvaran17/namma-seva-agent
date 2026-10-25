@@ -24,6 +24,8 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Run Pytest Test Suite & 50-Case Benchmark
+        env:
+          PYTHONPATH: .
         run: |
           pytest backend/tests/ -v
 

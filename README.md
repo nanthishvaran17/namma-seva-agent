@@ -3,7 +3,7 @@
 > **Tamil Nadu's Unified AI Agent for Government Services**  
 > An intelligent, multilingual civic assistance platform designed to help citizens discover, prepare for, and track Tamil Nadu government services in simple Tamil, Tanglish, and English.
 
-[![CI Test Suite](https://github.com/namma-seva/namma-seva-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/namma-seva/namma-seva-agent)
+[![CI Test Suite](https://github.com/nanthishvaran17/namma-seva-agent/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nanthishvaran17/namma-seva-agent/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.159-009688.svg)](https://fastapi.tiangolo.com/)
 [![React 19](https://img.shields.io/badge/React-19.3-61DAFB.svg)](https://react.dev/)
@@ -119,7 +119,7 @@ namma-seva-agent/
 ### Step 1: Backend Setup
 ```bash
 # Clone the repository
-git clone https://github.com/namma-seva/namma-seva-agent.git
+git clone https://github.com/nanthishvaran17/namma-seva-agent.git
 cd namma-seva-agent
 
 # Create Python virtual environment
