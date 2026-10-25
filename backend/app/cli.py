@@ -62,6 +62,7 @@ def main():
     admin_parser.add_argument("--full-name", default="System Administrator", help="Administrator display name")
 
     export_parser = subparsers.add_parser("export-playbooks", help="Export playbooks from DB ground truth to disk JSON files")
+    migrate_parser = subparsers.add_parser("migrate-encryption", help="Batch encrypt legacy plaintext database rows to AES-256-GCM")
 
     args = parser.parse_args()
     if args.command == "create-admin":
@@ -74,6 +75,14 @@ def main():
                 return await export_db_playbooks_to_disk(session)
         count = asyncio.run(run_export())
         print(f"Successfully exported {count} playbooks from DB to disk.")
+        sys.exit(0)
+    elif args.command == "migrate-encryption":
+        from backend.app.db.migrations.encrypt_plaintext_rows import migrate_plaintext_rows_to_encryption
+        async def run_migration():
+            async with AsyncSessionLocal() as session:
+                return await migrate_plaintext_rows_to_encryption(session)
+        stats = asyncio.run(run_migration())
+        print(f"Encryption migration completed successfully: {stats}")
         sys.exit(0)
 
 if __name__ == "__main__":

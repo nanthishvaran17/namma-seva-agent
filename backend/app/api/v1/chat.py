@@ -10,6 +10,7 @@ from backend.app.core.rate_limit import RateLimiter
 from backend.app.schemas.chat import ChatRequest, ChatResponse, Citation
 from backend.app.agent.orchestrator import agent_orchestrator
 from backend.app.api.deps import get_current_user
+from backend.app.models.user import User
 
 router = APIRouter(prefix="/chat", tags=["Conversational AI Assistant"])
 
