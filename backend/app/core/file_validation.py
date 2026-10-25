@@ -40,8 +40,9 @@ def sanitize_filename(filename: str) -> str:
     """
     if not filename:
         return "document"
-    # Extract basename to strip any directory paths
-    base = os.path.basename(filename)
+    # Normalize backslashes so path traversal stripping works consistently across Windows and Linux
+    normalized = filename.replace("\\", "/")
+    base = os.path.basename(normalized)
     # Remove traversal sequences and forbidden characters
     cleaned = re.sub(r'[\x00/\\:\*\?"<>\|]', '_', base)
     cleaned = cleaned.replace("..", "_")
