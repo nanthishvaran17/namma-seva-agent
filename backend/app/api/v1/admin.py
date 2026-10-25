@@ -117,7 +117,7 @@ async def update_playbook_verification_status(
         resource_type="PLAYBOOK",
         resource_id=service_id,
         details={
-            "who": admin_user.email,
+            "admin_user_id": admin_user.id,
             "when": now_iso,
             "old_status": prev_status,
             "new_status": new_status,

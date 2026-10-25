@@ -51,14 +51,14 @@ async def register_citizen(user_in: UserCreate, request: Request, db: AsyncSessi
     )
     db.add(initial_consent)
 
-    # Audit log
+    # Audit log (zero PII in details at write-time)
     audit = AuditLogModel(
         user_id=new_user.id,
         action="USER_REGISTRATION",
         resource_type="USER",
         resource_id=new_user.id,
         ip_address=client_ip,
-        details={"email": new_user.email}
+        details={"opaque_user_id": new_user.id}
     )
     db.add(audit)
     await db.commit()
@@ -87,7 +87,7 @@ async def login_citizen(login_data: UserLogin, request: Request, db: AsyncSessio
         resource_type="USER",
         resource_id=user.id,
         ip_address=client_ip,
-        details={"email": user.email}
+        details={"opaque_user_id": user.id}
     )
     db.add(audit)
     await db.commit()
