@@ -139,13 +139,14 @@ async def test_admin_updates_status_to_verified_with_audit_trail(client):
         # Verify audit log row
         audit_query = select(AuditLogModel).where(
             AuditLogModel.action == "PLAYBOOK_VERIFICATION_STATUS_CHANGE",
-            AuditLogModel.resource_id == "community_certificate"
+            AuditLogModel.resource_id == "community_certificate",
+            AuditLogModel.user_id == admin_id
         ).order_by(AuditLogModel.created_at.desc())
         audit_res = await session.execute(audit_query)
-        audit_row = audit_res.scalar_one_or_none()
+        audit_row = audit_res.scalars().first()
         assert audit_row is not None
         assert audit_row.user_id == admin_id
-        assert audit_row.details["who"] == admin_email
+        assert audit_row.details.get("admin_user_id") == admin_id
         assert audit_row.details["new_status"] == "VERIFIED"
         assert audit_row.details["review_notes"] == notes
 
