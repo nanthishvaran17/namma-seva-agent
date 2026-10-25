@@ -21,8 +21,8 @@ async def client():
         yield c
 
 @pytest.fixture(autouse=True)
-def preserve_playbook_file():
-    """Restores the original playbook file content after test completes."""
+async def preserve_playbook_file():
+    """Restores the original playbook file content and DB state after test completes."""
     service_id = "community_certificate"
     playbook_file = Path(settings.PLAYBOOKS_DIR) / f"{service_id}.json"
     original_content = None
@@ -35,6 +35,13 @@ def preserve_playbook_file():
         if original_content and playbook_file.exists():
             with open(playbook_file, "w", encoding="utf-8") as f:
                 f.write(original_content)
+        async with AsyncSessionLocal() as session:
+            db_model = await session.get(ServicePlaybookModel, service_id)
+            if db_model:
+                db_model.verification_status = "NEEDS_VERIFICATION"
+                db_model.verified_by = "PENDING_OFFICIAL_VERIFICATION"
+                db_model.last_verified = None
+                await session.commit()
         playbook_loader.reload()
 
 @pytest.mark.asyncio
@@ -142,7 +149,12 @@ async def test_admin_updates_status_to_verified_with_audit_trail(client):
         assert audit_row.details["new_status"] == "VERIFIED"
         assert audit_row.details["review_notes"] == notes
 
-    # 5. Verify JSON file on disk
+    # 5. Export DB to disk via explicit export (Fix 3)
+    from backend.app.playbooks.seeder import export_db_playbooks_to_disk
+    async with AsyncSessionLocal() as session:
+        await export_db_playbooks_to_disk(session)
+
+    # Verify JSON file on disk
     playbook_file = Path(settings.PLAYBOOKS_DIR) / "community_certificate.json"
     assert playbook_file.exists()
     with open(playbook_file, "r", encoding="utf-8") as f:
@@ -162,6 +174,10 @@ async def test_admin_updates_status_to_verified_with_audit_trail(client):
     assert revert_data["verification_status"] == "NEEDS_VERIFICATION"
     assert revert_data["verified_by"] == "PENDING_OFFICIAL_VERIFICATION"
     assert revert_data["last_verified"] is None
+
+    # Export reverted DB state to disk
+    async with AsyncSessionLocal() as session:
+        await export_db_playbooks_to_disk(session)
 
     # Disk file check after revert
     with open(playbook_file, "r", encoding="utf-8") as f:
