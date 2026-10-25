@@ -26,6 +26,7 @@ jobs:
       - name: Run Pytest Test Suite & 50-Case Benchmark
         env:
           PYTHONPATH: .
+          ENVIRONMENT: test
         run: |
           pytest backend/tests/ -v
 

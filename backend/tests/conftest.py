@@ -1,5 +1,6 @@
 import os
 
+os.environ.setdefault("ENVIRONMENT", "test")
 # Disable SQLAlchemy Cython C-extensions on Windows/Python 3.14 to prevent Application Control DLL blocks
 os.environ["DISABLE_SQLALCHEMY_CEXT"] = "1"
 
