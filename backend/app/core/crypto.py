@@ -228,6 +228,20 @@ def decrypt_field(
         expected_aad = associated_data
     elif len(parts) == 3:
         # Legacy field without AAD (FLE:1:... or FLE:2:...)
+        # If the caller provided AAD (meaning this column now expects binding) and
+        # ALLOW_LEGACY_FLE is False (default/production), reject to prevent downgrade attacks.
+        if associated_data is not None:
+            try:
+                from backend.app.core.config import settings as _settings
+                allow = _settings.ALLOW_LEGACY_FLE
+            except Exception:
+                allow = False
+            if not allow:
+                raise ValueError(
+                    "Legacy FLE ciphertext (no AAD) was found in a column that now requires "
+                    "AAD binding. Set ALLOW_LEGACY_FLE=true only during the migration window "
+                    "to re-encrypt legacy rows. Decryption rejected (fail-closed)."
+                )
         version_tag = parts[1]
         b64_payload = parts[2]
         expected_aad = None

@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     # Operating Modes
     DEMO_MODE: bool = False  # Fail-closed default: mock extraction blocked unless explicitly enabled
+    ALLOW_LEGACY_FLE: bool = False  # Fail-closed default: legacy FLE (no AAD) rejected unless explicitly enabled during migration window
 
     # Database
     # Default to async sqlite for seamless local development without external dependencies
@@ -144,6 +145,12 @@ class Settings(BaseSettings):
             raise ValueError(
                 "CRITICAL SECURITY CONFIGURATION ERROR: DEMO_MODE cannot be enabled in "
                 "production environments. Startup aborted."
+            )
+        if self.ALLOW_LEGACY_FLE:
+            raise ValueError(
+                "CRITICAL SECURITY CONFIGURATION ERROR: ALLOW_LEGACY_FLE cannot be enabled in "
+                "production environments. It is only permitted during the migration window in "
+                "dev/test. Startup aborted."
             )
         if self.WHATSAPP_TOKEN and (
             not self.WHATSAPP_VERIFY_TOKEN or self.WHATSAPP_VERIFY_TOKEN in INSECURE_DEFAULT_VERIFY_TOKENS
